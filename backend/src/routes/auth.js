@@ -1,18 +1,31 @@
 const express = require('express');
 const router = express.Router();
+const { body } = require('express-validator');
 const { register, login, logout, me } = require('../controllers/authController');
-const verifyToken = require('../middlewares/verifyToken');
+const requireAuth = require('../middlewares/requireAuth');
+const validate = require('../middlewares/validate');
 
 // POST /api/auth/register
-router.post('/register', register);
+router.post('/register', [
+    body('username').notEmpty().withMessage("Le nom d'utilisateur est obligatoire")
+                   .isLength({ min: 3 }).withMessage("Le nom d'utilisateur doit contenir au moins 3 caractères"),
+    body('email').isEmail().withMessage('Email invalide'),
+    body('password').isLength({ min: 6 }).withMessage('Le mot de passe doit contenir au moins 6 caractères'),
+    validate,
+], register);
 
 // POST /api/auth/login
-router.post('/login', login);
+router.post('/login', [
+    body('email').isEmail().withMessage('Email invalide'),
+    body('password').notEmpty().withMessage('Le mot de passe est obligatoire'),
+    validate,
+], login);
 
 // POST /api/auth/logout
 router.post('/logout', logout);
 
 // GET /api/auth/me (route protégée)
-router.get('/me', verifyToken, me);
+// Appelé par le frontend au chargement pour récupérer l'utilisateur connecté
+router.get('/me', requireAuth, me);
 
 module.exports = router;

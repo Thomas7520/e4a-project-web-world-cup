@@ -6,15 +6,6 @@ const db = require('../config/db');
 const register = async (req, res) => {
     const { username, email, password } = req.body;
 
-    // Validation des champs obligatoires
-    if (!username || !email || !password) {
-        return res.status(400).json({ message: 'Tous les champs sont obligatoires' });
-    }
-
-    if (password.length < 6) {
-        return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 6 caractères' });
-    }
-
     try {
         // Vérifier si l'email ou le nom d'utilisateur est déjà pris
         const [existingUsers] = await db.query(
@@ -26,10 +17,8 @@ const register = async (req, res) => {
             return res.status(409).json({ message: "Cet email ou ce nom d'utilisateur est déjà utilisé" });
         }
 
-        // Hashage du mot de passe
         const passwordHash = await bcrypt.hash(password, 10);
 
-        // Insertion en base de données
         await db.query(
             'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
             [username, email, passwordHash]
@@ -47,12 +36,7 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email et mot de passe obligatoires' });
-    }
-
     try {
-        // Recherche de l'utilisateur par email
         const [users] = await db.query(
             'SELECT * FROM users WHERE email = ?',
             [email]
@@ -64,20 +48,17 @@ const login = async (req, res) => {
 
         const user = users[0];
 
-        // Vérification du mot de passe
         const passwordValid = await bcrypt.compare(password, user.password_hash);
 
         if (!passwordValid) {
             return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
         }
 
-        // Mise à jour de la date de dernière connexion
         await db.query(
             'UPDATE users SET last_login = NOW() WHERE user_id = ?',
             [user.user_id]
         );
 
-        // Génération du token JWT
         const token = jwt.sign(
             { user_id: user.user_id, username: user.username, is_admin: user.is_admin },
             process.env.JWT_SECRET,
