@@ -108,4 +108,26 @@ const logout = (req, res) => {
     res.json({ message: 'Déconnexion réussie' });
 };
 
-module.exports = { register, login, logout };
+// GET /api/auth/me
+// Appelé par le frontend au chargement de l'app pour récupérer les infos de
+// l'utilisateur connecté à partir de son token JWT (ex: après un refresh de page).
+const me = async (req, res) => {
+    try {
+        const [users] = await db.query(
+            'SELECT user_id, username, email, avatar_url, is_admin, created_at, last_login FROM users WHERE user_id = ?',
+            [req.user.user_id]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'Utilisateur introuvable' });
+        }
+
+        res.json(users[0]);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+module.exports = { register, login, logout, me };
