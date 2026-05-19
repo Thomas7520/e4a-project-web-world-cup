@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
 // POST /api/auth/register
@@ -22,7 +23,7 @@ const register = async (req, res) => {
         );
 
         if (existingUsers.length > 0) {
-            return res.status(409).json({ message: 'Cet email ou ce nom d\'utilisateur est déjà utilisé' });
+            return res.status(409).json({ message: "Cet email ou ce nom d'utilisateur est déjà utilisé" });
         }
 
         // Hashage du mot de passe
@@ -42,4 +43,69 @@ const register = async (req, res) => {
     }
 };
 
-module.exports = { register };
+// POST /api/auth/login
+const login = async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email et mot de passe obligatoires' });
+    }
+
+    try {
+        // Recherche de l'utilisateur par email
+        const [users] = await db.query(
+            'SELECT * FROM users WHERE email = ?',
+            [email]
+        );
+
+        if (users.length === 0) {
+            return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+        }
+
+        const user = users[0];
+
+        // Vérification du mot de passe
+        const passwordValid = await bcrypt.compare(password, user.password_hash);
+
+        if (!passwordValid) {
+            return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+        }
+
+        // Mise à jour de la date de dernière connexion
+        await db.query(
+            'UPDATE users SET last_login = NOW() WHERE user_id = ?',
+            [user.user_id]
+        );
+
+        // Génération du token JWT
+        const token = jwt.sign(
+            { user_id: user.user_id, username: user.username, is_admin: user.is_admin },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_EXPIRES_IN }
+        );
+
+        res.json({
+            message: 'Connexion réussie',
+            token,
+            user: {
+                user_id: user.user_id,
+                username: user.username,
+                email: user.email,
+                avatar_url: user.avatar_url,
+                is_admin: user.is_admin,
+            }
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+// POST /api/auth/logout
+const logout = (req, res) => {
+    // Avec JWT, la déconnexion se gère côté client (suppression du token)
+    res.json({ message: 'Déconnexion réussie' });
+};
+
+module.exports = { register, login, logout };

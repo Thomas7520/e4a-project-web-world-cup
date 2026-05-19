@@ -21,8 +21,12 @@ app.get('/', (req, res) => {
     res.json({ message: 'API Coupe du Monde - Serveur en ligne' });
 });
 
-// Démarrage du serveur
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Serveur démarré sur le port ${PORT}`);
-});
+// Démarrage du serveur uniquement si le fichier est exécuté directement
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Serveur démarré sur le port ${PORT}`);
+    });
+}
+
+module.exports = app;
