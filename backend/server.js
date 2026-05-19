@@ -11,10 +11,12 @@ app.use(express.json());
 // Import des routes
 const authRoutes = require('./src/routes/auth');
 const userRoutes = require('./src/routes/users');
+const adminRoutes = require('./src/routes/admin');
 
 // Déclaration des routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Route de test
 app.get('/', (req, res) => {
