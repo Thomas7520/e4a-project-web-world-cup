@@ -1,33 +1,70 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
+import { useAuth } from './contexts/AuthContext';
+import { useToast } from './contexts/ToastContext';
 import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 import Header from './components/Header';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
+import api from './services/api';
+
+function AuthChecker() {
+    const { user, logout } = useAuth();
+    const { addToast } = useToast();
+    const location = useLocation();
+    const handling = useRef(false);
+
+    const handleDisabled = () => {
+        if (handling.current) return;
+        handling.current = true;
+        logout();
+        addToast('Votre compte a été désactivé', 'error');
+        setTimeout(() => { handling.current = false; }, 3000);
+    };
+
+    // Vérifie l'auth à chaque changement de page
+    useEffect(() => {
+        if (!user) return;
+        api.get('/auth/me').catch(() => handleDisabled());
+    }, [location.pathname]);
+
+    // Écoute les 401 remontés par l'intercepteur axios
+    useEffect(() => {
+        const handler = () => { if (user) handleDisabled(); };
+        window.addEventListener('auth:unauthorized', handler);
+        return () => window.removeEventListener('auth:unauthorized', handler);
+    }, [user]);
+
+    return null;
+}
 
 function App() {
     return (
-        <AuthProvider>
-            <BrowserRouter>
-                <Header />
-                <Routes>
+        <ToastProvider>
+            <AuthProvider>
+                <BrowserRouter>
+                    <AuthChecker />
+                    <Header />
+                    <Routes>
+                        <Route path="/profile" element={
+                            <ProtectedRoute>
+                                <Profile />
+                            </ProtectedRoute>
+                        } />
 
-                    <Route path="/profile" element={
-                        <ProtectedRoute>
-                            <Profile />
-                        </ProtectedRoute>
-                    } />
+                        <Route path="/admin" element={
+                            <AdminRoute>
+                                <Admin />
+                            </AdminRoute>
+                        } />
 
-                    <Route path="/admin" element={
-                        <AdminRoute>
-                            <Admin />
-                        </AdminRoute>
-                    } />
-
-                    <Route path="/" element={<p>Accueil</p>} />
-                </Routes>
-            </BrowserRouter>
-        </AuthProvider>
+                        <Route path="/" element={<p>Accueil</p>} />
+                    </Routes>
+                </BrowserRouter>
+            </AuthProvider>
+        </ToastProvider>
     );
 }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import api from '../services/api';
 
 export default function AuthModal({ onClose }) {
@@ -7,43 +8,38 @@ export default function AuthModal({ onClose }) {
 
     const [loginEmail, setLoginEmail] = useState('');
     const [loginPassword, setLoginPassword] = useState('');
-    const [loginError, setLoginError] = useState('');
 
     const [username, setUsername] = useState('');
     const [regEmail, setRegEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [regError, setRegError] = useState('');
-    const [regSuccess, setRegSuccess] = useState('');
 
     const { login } = useAuth();
+    const { addToast } = useToast();
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setLoginError('');
         try {
             const res = await api.post('/auth/login', { email: loginEmail, password: loginPassword });
             login(res.data.token, res.data.user);
             onClose();
         } catch (err) {
-            setLoginError(err.response?.data?.message || 'Erreur de connexion');
+            addToast(err.response?.data?.message || 'Erreur de connexion', 'error');
         }
     };
 
     const handleRegister = async (e) => {
         e.preventDefault();
-        setRegError('');
-        setRegSuccess('');
         if (password !== confirmPassword) {
-            return setRegError('Les mots de passe ne correspondent pas');
+            return addToast('Les mots de passe ne correspondent pas', 'error');
         }
         try {
             await api.post('/auth/register', { username, email: regEmail, password });
-            setRegSuccess('Compte créé ! Tu peux maintenant te connecter.');
-            setTimeout(() => setTab('login'), 1500);
+            addToast('Compte créé ! Tu peux maintenant te connecter.');
+            setTimeout(() => setTab('login'), 1000);
         } catch (err) {
             const data = err.response?.data;
-            setRegError(data?.message || data?.errors?.[0]?.msg || "Erreur lors de l'inscription");
+            addToast(data?.message || data?.errors?.[0]?.msg || "Erreur lors de l'inscription", 'error');
         }
     };
 
@@ -68,7 +64,6 @@ export default function AuthModal({ onClose }) {
                 {tab === 'login' && (
                     <form onSubmit={handleLogin} className="modal-form">
                         <h2>Connexion</h2>
-                        {loginError && <p className="msg-error">{loginError}</p>}
                         <div className="form-group">
                             <label>Adresse Email</label>
                             <input
@@ -97,8 +92,6 @@ export default function AuthModal({ onClose }) {
                 {tab === 'register' && (
                     <form onSubmit={handleRegister} className="modal-form">
                         <h2>Inscription</h2>
-                        {regError && <p className="msg-error">{regError}</p>}
-                        {regSuccess && <p className="msg-success">{regSuccess}</p>}
                         <div className="form-group">
                             <label>Nom d'utilisateur</label>
                             <input

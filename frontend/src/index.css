@@ -138,7 +138,7 @@ input:focus {
 }
 
 .table tr:last-child td { border-bottom: none; }
-.table tr.inactive      { opacity: 0.5; }
+.table tr.inactive td:not(.admin-actions) { opacity: 0.5; }
 
 .modal-backdrop {
     position: fixed;
@@ -192,4 +192,34 @@ input:focus {
 .modal-form h2 {
     font-size: 1.4rem;
     text-align: center;
+}
+
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 200;
+}
+
+.toast {
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    color: var(--white);
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: toast-in 0.2s ease;
+    min-width: 220px;
+    max-width: 340px;
+}
+
+.toast-success { background-color: var(--success); }
+.toast-error   { background-color: var(--error); }
+.toast-info    { background-color: var(--primary); }
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
 }

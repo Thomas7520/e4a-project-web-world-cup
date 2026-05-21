@@ -17,7 +17,7 @@ export function AdminRoute({ children }) {
 
     if (loading) return <p>Chargement...</p>;
     if (!user) return <Navigate to="/" />;
-    if (!user.is_admin) return <Navigate to="/" />;
+    if (!['moderator', 'admin', 'super_admin'].includes(user.role)) return <Navigate to="/" />;
 
     return children;
 }

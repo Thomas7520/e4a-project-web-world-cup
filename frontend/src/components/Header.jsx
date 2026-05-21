@@ -31,7 +31,7 @@ export default function Header() {
                                 }
                                 {user.username}
                             </Link>
-                            {user.is_admin && (
+                            {['moderator', 'admin', 'super_admin'].includes(user.role) && (
                                 <Link to="/admin" className="header-link">Administration</Link>
                             )}
                             <button onClick={handleLogout} className="header-logout-btn">Déconnexion</button>

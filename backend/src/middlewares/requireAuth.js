@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const db = require('../config/db');
 
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
 
     // Le header doit être de la forme : "Bearer <token>"
@@ -12,7 +13,17 @@ const verifyToken = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; // { user_id, username, is_admin }
+
+        const [users] = await db.query(
+            'SELECT is_active FROM users WHERE user_id = ?',
+            [decoded.user_id]
+        );
+
+        if (users.length === 0 || !users[0].is_active) {
+            return res.status(401).json({ message: 'Compte désactivé ou introuvable' });
+        }
+
+        req.user = decoded; // { user_id, username, role }
         next();
     } catch (error) {
         return res.status(401).json({ message: 'Token invalide ou expiré' });

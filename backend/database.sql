@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
     email         VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     avatar_url    VARCHAR(255) DEFAULT NULL,
-    is_admin      TINYINT(1)   DEFAULT 0,
+    role          ENUM('user', 'moderator', 'admin', 'super_admin') DEFAULT 'user',
     is_active     TINYINT(1)   DEFAULT 1,
     created_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     last_login    TIMESTAMP    DEFAULT NULL

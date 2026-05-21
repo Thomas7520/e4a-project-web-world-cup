@@ -38,7 +38,7 @@ const login = async (req, res) => {
 
     try {
         const [users] = await db.query(
-            'SELECT * FROM users WHERE email = ?',
+            'SELECT user_id, username, email, password_hash, avatar_url, role, is_active FROM users WHERE email = ?',
             [email]
         );
 
@@ -64,7 +64,7 @@ const login = async (req, res) => {
         );
 
         const token = jwt.sign(
-            { user_id: user.user_id, username: user.username, is_admin: user.is_admin },
+            { user_id: user.user_id, username: user.username, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: process.env.JWT_EXPIRES_IN }
         );
@@ -77,7 +77,7 @@ const login = async (req, res) => {
                 username: user.username,
                 email: user.email,
                 avatar_url: user.avatar_url,
-                is_admin: user.is_admin,
+                role: user.role,
             }
         });
 
@@ -99,7 +99,7 @@ const logout = (req, res) => {
 const me = async (req, res) => {
     try {
         const [users] = await db.query(
-            'SELECT user_id, username, email, avatar_url, is_admin, created_at, last_login FROM users WHERE user_id = ?',
+            'SELECT user_id, username, email, avatar_url, role, created_at, last_login FROM users WHERE user_id = ?',
             [req.user.user_id]
         );
 

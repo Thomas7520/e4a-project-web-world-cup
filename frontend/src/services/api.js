@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// Instance axios avec l'URL de base de l'API
 const api = axios.create({
     baseURL: '/api',
 });
@@ -13,5 +12,20 @@ api.interceptors.request.use((config) => {
     }
     return config;
 });
+
+// Sur un 401 avec token (sauf /auth/me géré par AuthChecker), signale la déconnexion forcée
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const isAuthenticated = !!error.config.headers?.Authorization;
+        const isAuthMe = error.config.url?.includes('/auth/me');
+
+        if (error.response?.status === 401 && isAuthenticated && !isAuthMe) {
+            localStorage.removeItem('token');
+            window.dispatchEvent(new Event('auth:unauthorized'));
+        }
+        return Promise.reject(error);
+    }
+);
 
 export default api;

@@ -1,14 +1,14 @@
 const db = require('../config/db');
 
+const ROLE_LEVEL = { user: 0, moderator: 1, admin: 2, super_admin: 3 };
+
 // GET /api/admin/users — lister tous les utilisateurs
 const getAllUsers = async (req, res) => {
     try {
         const [users] = await db.query(
-            'SELECT user_id, username, email, avatar_url, is_admin, is_active, created_at, last_login FROM users ORDER BY created_at DESC'
+            'SELECT user_id, username, email, avatar_url, role, is_active, created_at, last_login FROM users ORDER BY created_at DESC'
         );
-
         res.json(users);
-
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erreur serveur' });
@@ -18,10 +18,11 @@ const getAllUsers = async (req, res) => {
 // PUT /api/admin/users/:id/disable — activer ou désactiver un compte
 const toggleUserActive = async (req, res) => {
     const { id } = req.params;
+    const actor = req.user;
 
     try {
         const [users] = await db.query(
-            'SELECT user_id, is_active FROM users WHERE user_id = ?',
+            'SELECT user_id, role, is_active FROM users WHERE user_id = ?',
             [id]
         );
 
@@ -29,16 +30,17 @@ const toggleUserActive = async (req, res) => {
             return res.status(404).json({ message: 'Utilisateur introuvable' });
         }
 
-        // On inverse l'état actuel
-        const newStatus = users[0].is_active ? 0 : 1;
+        const target = users[0];
 
-        await db.query(
-            'UPDATE users SET is_active = ? WHERE user_id = ?',
-            [newStatus, id]
-        );
+        if (ROLE_LEVEL[actor.role] <= ROLE_LEVEL[target.role]) {
+            return res.status(403).json({ message: 'Vous ne pouvez pas modifier un compte de rang égal ou supérieur' });
+        }
 
-        const message = newStatus ? 'Compte réactivé' : 'Compte désactivé';
-        res.json({ message });
+        const newStatus = target.is_active ? 0 : 1;
+
+        await db.query('UPDATE users SET is_active = ? WHERE user_id = ?', [newStatus, id]);
+
+        res.json({ message: newStatus ? 'Compte réactivé' : 'Compte désactivé' });
 
     } catch (error) {
         console.error(error);
@@ -46,18 +48,24 @@ const toggleUserActive = async (req, res) => {
     }
 };
 
-// PUT /api/admin/users/:id/promote — promouvoir ou rétrograder un administrateur
-const toggleUserAdmin = async (req, res) => {
+// PUT /api/admin/users/:id/promote — changer le rôle d'un utilisateur
+const toggleUserRole = async (req, res) => {
     const { id } = req.params;
+    const { role: newRole } = req.body;
+    const actor = req.user;
 
-    // Un admin ne peut pas se rétrograder lui-même
-    if (parseInt(id) === req.user.user_id) {
+    const validRoles = ['user', 'moderator', 'admin'];
+    if (!validRoles.includes(newRole)) {
+        return res.status(400).json({ message: 'Rôle invalide' });
+    }
+
+    if (parseInt(id) === actor.user_id) {
         return res.status(400).json({ message: 'Vous ne pouvez pas modifier votre propre rôle' });
     }
 
     try {
         const [users] = await db.query(
-            'SELECT user_id, is_admin FROM users WHERE user_id = ?',
+            'SELECT user_id, role FROM users WHERE user_id = ?',
             [id]
         );
 
@@ -65,15 +73,47 @@ const toggleUserAdmin = async (req, res) => {
             return res.status(404).json({ message: 'Utilisateur introuvable' });
         }
 
-        const newRole = users[0].is_admin ? 0 : 1;
+        const target = users[0];
 
-        await db.query(
-            'UPDATE users SET is_admin = ? WHERE user_id = ?',
-            [newRole, id]
+        if (ROLE_LEVEL[actor.role] <= ROLE_LEVEL[target.role]) {
+            return res.status(403).json({ message: 'Vous ne pouvez pas modifier un compte de rang égal ou supérieur' });
+        }
+
+        if (ROLE_LEVEL[newRole] >= ROLE_LEVEL[actor.role]) {
+            return res.status(403).json({ message: 'Vous ne pouvez pas attribuer un rang égal ou supérieur au vôtre' });
+        }
+
+        await db.query('UPDATE users SET role = ? WHERE user_id = ?', [newRole, id]);
+
+        res.json({ message: `Rôle mis à jour` });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+// PUT /api/admin/users/:id — modifier le nom d'utilisateur et l'email
+const updateUserInfo = async (req, res) => {
+    const { id } = req.params;
+    const { username, email } = req.body;
+
+    try {
+        const [conflict] = await db.query(
+            'SELECT user_id FROM users WHERE (username = ? OR email = ?) AND user_id != ?',
+            [username, email, id]
         );
 
-        const message = newRole ? 'Utilisateur promu administrateur' : 'Droits administrateur retirés';
-        res.json({ message });
+        if (conflict.length > 0) {
+            return res.status(409).json({ message: "Ce nom d'utilisateur ou cet email est déjà utilisé" });
+        }
+
+        await db.query(
+            'UPDATE users SET username = ?, email = ? WHERE user_id = ?',
+            [username, email, id]
+        );
+
+        res.json({ message: 'Utilisateur mis à jour' });
 
     } catch (error) {
         console.error(error);
@@ -82,7 +122,6 @@ const toggleUserAdmin = async (req, res) => {
 };
 
 // PUT /api/admin/matches/:id/score — saisie manuelle du score d'un match
-// Utilisé pour finaliser un match et déclencher le calcul des classements (Personne 2 & 3)
 const updateMatchScore = async (req, res) => {
     const { id } = req.params;
     const { home_score, away_score, status } = req.body;
@@ -105,4 +144,4 @@ const updateMatchScore = async (req, res) => {
     }
 };
 
-module.exports = { getAllUsers, toggleUserActive, toggleUserAdmin, updateMatchScore };
+module.exports = { getAllUsers, toggleUserActive, toggleUserRole, updateUserInfo, updateMatchScore };
