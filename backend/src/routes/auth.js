@@ -6,20 +6,21 @@ const requireAuth = require('../middlewares/requireAuth');
 const validate = require('../middlewares/validate');
 
 // POST /api/auth/register
-router.post('/register', [
-    body('username').notEmpty().withMessage("Le nom d'utilisateur est obligatoire")
-                   .isLength({ min: 3 }).withMessage("Le nom d'utilisateur doit contenir au moins 3 caractères"),
+router.post('/register',
+    body('username').notEmpty().withMessage("Le nom d'utilisateur est obligatoire").isLength({ min: 3 }).withMessage("Le nom d'utilisateur doit contenir au moins 3 caractères"),
     body('email').isEmail().withMessage('Email invalide'),
     body('password').isLength({ min: 6 }).withMessage('Le mot de passe doit contenir au moins 6 caractères'),
     validate,
-], register);
+    register
+);
 
 // POST /api/auth/login
-router.post('/login', [
+router.post('/login',
     body('email').isEmail().withMessage('Email invalide'),
     body('password').notEmpty().withMessage('Le mot de passe est obligatoire'),
     validate,
-], login);
+    login
+);
 
 // POST /api/auth/logout
 router.post('/logout', logout);

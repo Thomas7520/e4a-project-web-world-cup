@@ -24,6 +24,13 @@ app.get('/', (req, res) => {
 });
 
 // Démarrage du serveur uniquement si le fichier est exécuté directement
+
+// Intercepte les erreurs Express non gérées
+app.use((err, req, res, next) => {
+    console.error('ERREUR EXPRESS NON GÉRÉE:', err);
+    res.status(500).json({ message: 'Erreur serveur', debug: err.message });
+});
+
 if (require.main === module) {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {

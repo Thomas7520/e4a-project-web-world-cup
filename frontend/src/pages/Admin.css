@@ -1,0 +1,19 @@
+.admin-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.admin-count {
+    background-color: var(--primary);
+    color: var(--white);
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 8px;
+}
