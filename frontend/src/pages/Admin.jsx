@@ -31,6 +31,7 @@ export default function Admin() {
     const { user: me } = useAuth();
     const { addToast } = useToast();
     const [users, setUsers] = useState([]);
+    const [search, setSearch] = useState('');
     const [editUser, setEditUser] = useState(null);
     const [editUsername, setEditUsername] = useState('');
     const [editEmail, setEditEmail] = useState('');
@@ -109,6 +110,14 @@ export default function Admin() {
                 <span className="admin-count">{users.length} utilisateur{users.length > 1 ? 's' : ''}</span>
             </div>
 
+            <input
+                type="search"
+                className="admin-search"
+                placeholder="Rechercher par nom ou email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+            />
+
             <div className="table-wrapper">
             <table className="table">
                 <thead>
@@ -122,7 +131,10 @@ export default function Admin() {
                     </tr>
                 </thead>
                 <tbody>
-                    {users.map((u) => (
+                    {users.filter(u =>
+                        u.username.toLowerCase().includes(search.toLowerCase()) ||
+                        u.email.toLowerCase().includes(search.toLowerCase())
+                    ).map((u) => (
                         <tr key={u.user_id} className={!u.is_active ? 'inactive' : ''}>
                             <td>{u.user_id}</td>
                             <td>{u.username}</td>

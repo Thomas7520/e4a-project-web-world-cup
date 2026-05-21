@@ -28,6 +28,12 @@
     cursor: pointer;
 }
 
+.admin-search {
+    width: 100%;
+    max-width: 360px;
+    margin-bottom: 16px;
+}
+
 .table-wrapper {
     overflow-x: auto;
 }
