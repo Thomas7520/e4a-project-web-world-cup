@@ -27,3 +27,23 @@
     background: var(--white);
     cursor: pointer;
 }
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+    .admin-actions {
+        flex-wrap: wrap;
+    }
+
+    .page-content {
+        padding: 20px 12px;
+    }
+}
+
+@media (max-width: 600px) {
+    .admin-header h2 {
+        font-size: 1.1rem;
+    }
+}

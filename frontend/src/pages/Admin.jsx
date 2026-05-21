@@ -108,6 +108,7 @@ export default function Admin() {
                 <span className="admin-count">{users.length} utilisateur{users.length > 1 ? 's' : ''}</span>
             </div>
 
+            <div className="table-wrapper">
             <table className="table">
                 <thead>
                     <tr>
@@ -155,6 +156,7 @@ export default function Admin() {
                     ))}
                 </tbody>
             </table>
+            </div>
 
             {editUser && (
                 <div className="modal-backdrop" onClick={() => setEditUser(null)}>

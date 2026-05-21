@@ -237,3 +237,32 @@ input:focus {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+
+@media (max-width: 600px) {
+    .form-card {
+        padding: 28px 20px;
+        max-width: 100%;
+    }
+
+    .modal-card {
+        margin: 12px;
+        width: calc(100% - 24px);
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-form {
+        padding: 20px;
+    }
+
+    .toast-container {
+        left: 12px;
+        right: 12px;
+        bottom: 16px;
+    }
+
+    .toast {
+        min-width: unset;
+        max-width: 100%;
+    }
+}
