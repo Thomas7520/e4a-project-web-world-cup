@@ -1,3 +1,37 @@
+.profile-page {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    gap: 24px;
+    padding: 32px 16px;
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+.profile-page .form-card {
+    flex: 1;
+    min-width: 300px;
+    max-width: 420px;
+}
+
+.profile-page .form-card .btn {
+    margin-top: auto;
+}
+
+@media (max-width: 768px) {
+    .profile-page {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .profile-page .form-card {
+        flex: none;
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
 .profile-avatar-section {
     display: flex;
     flex-direction: column;

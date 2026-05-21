@@ -22,7 +22,8 @@ api.interceptors.response.use(
 
         if (error.response?.status === 401 && isAuthenticated && !isAuthMe) {
             localStorage.removeItem('token');
-            window.dispatchEvent(new Event('auth:unauthorized'));
+            const message = error.response?.data?.message || '';
+            window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { message } }));
         }
         return Promise.reject(error);
     }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -18,6 +18,14 @@ export default function AuthModal({ onClose }) {
 
     const { login } = useAuth();
     const { addToast } = useToast();
+    const bodyRef = useRef(null);
+    const [bodyHeight, setBodyHeight] = useState('auto');
+
+    useEffect(() => {
+        if (bodyRef.current) {
+            setBodyHeight(bodyRef.current.scrollHeight + 'px');
+        }
+    }, [tab]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -62,89 +70,102 @@ export default function AuthModal({ onClose }) {
                     >
                         S'inscrire
                     </button>
+                    <button className="modal-close" onClick={onClose} aria-label="Fermer">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
                 </div>
 
-                {tab === 'login' && (
-                    <form onSubmit={handleLogin} className="modal-form">
-                        <h2>Connexion</h2>
-                        <div className="form-group">
-                            <label>Adresse Email</label>
-                            <input
-                                type="email"
-                                placeholder="exemple@mail.com"
-                                value={loginEmail}
-                                onChange={(e) => setLoginEmail(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Mot de passe</label>
-                            <input
-                                type="password"
-                                value={loginPassword}
-                                onChange={(e) => setLoginPassword(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <label className="remember-me">
-                            <input
-                                type="checkbox"
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMe(e.target.checked)}
-                            />
-                            Rester connecté pendant 7 jours
-                        </label>
-                        <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                            Se connecter
-                        </button>
-                    </form>
-                )}
+                <div
+                    className="modal-body"
+                    style={{ height: bodyHeight, transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                >
+                    <div ref={bodyRef}>
+                        {tab === 'login' && (
+                            <form onSubmit={handleLogin} className="modal-form">
+                                <h2>Connexion</h2>
+                                <div className="form-group">
+                                    <label>Adresse Email</label>
+                                    <input
+                                        type="email"
+                                        placeholder="exemple@mail.com"
+                                        value={loginEmail}
+                                        onChange={(e) => setLoginEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Mot de passe</label>
+                                    <input
+                                        type="password"
+                                        value={loginPassword}
+                                        onChange={(e) => setLoginPassword(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <label className="remember-me">
+                                    <input
+                                        type="checkbox"
+                                        checked={rememberMe}
+                                        onChange={(e) => setRememberMe(e.target.checked)}
+                                    />
+                                    Rester connecté pendant 7 jours
+                                </label>
+                                <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+                                    Se connecter
+                                </button>
+                            </form>
+                        )}
 
-                {tab === 'register' && (
-                    <form onSubmit={handleRegister} className="modal-form">
-                        <h2>Inscription</h2>
-                        <div className="form-group">
-                            <label>Nom d'utilisateur</label>
-                            <input
-                                type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Email</label>
-                            <input
-                                type="email"
-                                value={regEmail}
-                                onChange={(e) => setRegEmail(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Mot de passe</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
-                            <p className="field-hint">8 caractères minimum, une majuscule et un caractère spécial</p>
-                        </div>
-                        <div className="form-group">
-                            <label>Confirmer le mot de passe</label>
-                            <input
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                            Créer un compte
-                        </button>
-                    </form>
-                )}
+                        {tab === 'register' && (
+                            <form onSubmit={handleRegister} className="modal-form">
+                                <h2>Inscription</h2>
+                                <div className="form-group">
+                                    <label>Nom d'utilisateur</label>
+                                    <input
+                                        type="text"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Email</label>
+                                    <input
+                                        type="email"
+                                        value={regEmail}
+                                        onChange={(e) => setRegEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Mot de passe</label>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                    <p className="field-hint">8 caractères minimum, une majuscule et un caractère spécial</p>
+                                </div>
+                                <div className="form-group">
+                                    <label>Confirmer le mot de passe</label>
+                                    <input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+                                    Créer un compte
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>,
         document.body

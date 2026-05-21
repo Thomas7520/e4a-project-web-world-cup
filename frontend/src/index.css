@@ -147,7 +147,8 @@ input:focus {
     background: rgba(0, 0, 0, 0.4);
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
+    padding-top: 60px;
     z-index: 100;
 }
 
@@ -157,7 +158,8 @@ input:focus {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     width: 100%;
     max-width: 400px;
-    overflow: hidden;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-tabs {
@@ -175,6 +177,7 @@ input:focus {
     cursor: pointer;
     font-size: 0.95rem;
     color: var(--text-light);
+    transition: border-bottom-color 0.25s ease, color 0.25s ease;
 }
 
 .modal-tab.active {
@@ -183,11 +186,39 @@ input:focus {
     font-weight: 600;
 }
 
+.modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: var(--text);
+}
+
+.modal-body {
+    overflow: hidden;
+}
+
 .modal-form {
     padding: 28px 32px;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    animation: modal-fade 0.2s ease;
+}
+
+@keyframes modal-fade {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .modal-form h2 {

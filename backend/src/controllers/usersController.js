@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt');
 const db = require('../config/db');
 
 // GET /api/users/me
@@ -52,4 +53,34 @@ const updateProfile = async (req, res) => {
     }
 };
 
-module.exports = { getProfile, updateProfile };
+// PUT /api/users/me/password
+const changePassword = async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    try {
+        const [users] = await db.query(
+            'SELECT password_hash FROM users WHERE user_id = ?',
+            [req.user.user_id]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'Utilisateur introuvable' });
+        }
+
+        const valid = await bcrypt.compare(currentPassword, users[0].password_hash);
+        if (!valid) {
+            return res.status(401).json({ message: 'Mot de passe actuel incorrect' });
+        }
+
+        const hash = await bcrypt.hash(newPassword, 10);
+        await db.query('UPDATE users SET password_hash = ? WHERE user_id = ?', [hash, req.user.user_id]);
+
+        res.json({ message: 'Mot de passe mis à jour' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+module.exports = { getProfile, updateProfile, changePassword };

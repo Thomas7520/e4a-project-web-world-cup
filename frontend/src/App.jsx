@@ -16,23 +16,24 @@ function AuthChecker() {
     const location = useLocation();
     const handling = useRef(false);
 
-    const handleDisabled = () => {
+    const handleUnauth = (message) => {
         if (handling.current) return;
         handling.current = true;
         logout();
-        addToast('Votre compte a été désactivé', 'error');
+        const isDisabled = message?.includes('désactivé') || message?.includes('introuvable');
+        addToast(isDisabled ? 'Votre compte a été désactivé' : 'Votre session a expiré, veuillez vous reconnecter', 'error');
         setTimeout(() => { handling.current = false; }, 3000);
     };
 
     // Vérifie l'auth à chaque changement de page
     useEffect(() => {
         if (!user) return;
-        api.get('/auth/me').catch(() => handleDisabled());
+        api.get('/auth/me').catch((err) => handleUnauth(err.response?.data?.message));
     }, [location.pathname]);
 
     // Écoute les 401 remontés par l'intercepteur axios
     useEffect(() => {
-        const handler = () => { if (user) handleDisabled(); };
+        const handler = (e) => { if (user) handleUnauth(e.detail?.message); };
         window.addEventListener('auth:unauthorized', handler);
         return () => window.removeEventListener('auth:unauthorized', handler);
     }, [user]);

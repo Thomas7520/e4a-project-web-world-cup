@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { getProfile, updateProfile } = require('../controllers/usersController');
+const { getProfile, updateProfile, changePassword } = require('../controllers/usersController');
 const requireAuth = require('../middlewares/requireAuth');
 const validate = require('../middlewares/validate');
 
@@ -15,6 +15,18 @@ router.put('/me',
     body('avatar_url').optional().isURL().withMessage("URL de l'avatar invalide"),
     validate,
     updateProfile
+);
+
+// PUT /api/users/me/password (route protégée)
+router.put('/me/password',
+    requireAuth,
+    body('currentPassword').notEmpty().withMessage('Le mot de passe actuel est obligatoire'),
+    body('newPassword')
+        .isLength({ min: 8 }).withMessage('Le mot de passe doit contenir au moins 8 caractères')
+        .matches(/[A-Z]/).withMessage('Le mot de passe doit contenir au moins une majuscule')
+        .matches(/[!@#$%^&*()\-_=+\[\]{};:'",.<>?\/\\|`~]/).withMessage('Le mot de passe doit contenir au moins un caractère spécial'),
+    validate,
+    changePassword
 );
 
 module.exports = router;
