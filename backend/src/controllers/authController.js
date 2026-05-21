@@ -48,6 +48,10 @@ const login = async (req, res) => {
 
         const user = users[0];
 
+        if (!user.is_active) {
+            return res.status(403).json({ message: 'Ce compte a été désactivé' });
+        }
+
         const passwordValid = await bcrypt.compare(password, user.password_hash);
 
         if (!passwordValid) {

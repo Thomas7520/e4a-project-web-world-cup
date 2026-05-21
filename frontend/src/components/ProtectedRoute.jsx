@@ -6,7 +6,7 @@ export function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
 
     if (loading) return <p>Chargement...</p>;
-    if (!user) return <Navigate to="/login" />;
+    if (!user) return <Navigate to="/" />;
 
     return children;
 }
@@ -16,7 +16,7 @@ export function AdminRoute({ children }) {
     const { user, loading } = useAuth();
 
     if (loading) return <p>Chargement...</p>;
-    if (!user) return <Navigate to="/login" />;
+    if (!user) return <Navigate to="/" />;
     if (!user.is_admin) return <Navigate to="/" />;
 
     return children;
