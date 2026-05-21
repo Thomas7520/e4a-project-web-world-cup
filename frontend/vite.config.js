@@ -5,8 +5,8 @@ export default defineConfig({
     plugins: [react()],
     server: {
         proxy: {
-            // Redirige les appels /api vers le serveur Express (port 3000)
             '/api': 'http://localhost:3000',
+            '/uploads': 'http://localhost:3000',
         },
     },
 })

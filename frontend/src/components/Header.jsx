@@ -35,7 +35,10 @@ export default function Header() {
     const [modalOpen, setModalOpen] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [avatarSrc, setAvatarSrc] = useState(user?.avatar_url || null);
     const dropdownRef = useRef(null);
+
+    useEffect(() => { setAvatarSrc(user?.avatar_url || null); }, [user?.avatar_url]);
 
     // Ferme le menu hamburger sur changement de page
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
@@ -90,8 +93,8 @@ export default function Header() {
                                 className="header-user-btn"
                                 onClick={() => setDropdownOpen(o => !o)}
                             >
-                                {user.avatar_url
-                                    ? <img src={user.avatar_url} alt="avatar" className="header-avatar" />
+                                {avatarSrc
+                                    ? <img src={avatarSrc} alt="avatar" className="header-avatar" onError={() => setAvatarSrc(null)} />
                                     : <span className="header-avatar-placeholder">{user.username[0].toUpperCase()}</span>
                                 }
                                 <span className="header-username">{user.username}</span>

@@ -1,4 +1,6 @@
 const bcrypt = require('bcrypt');
+const path = require('path');
+const fs = require('fs');
 const db = require('../config/db');
 
 // GET /api/users/me
@@ -23,7 +25,7 @@ const getProfile = async (req, res) => {
 
 // PUT /api/users/me
 const updateProfile = async (req, res) => {
-    const { username, email, avatar_url } = req.body;
+    const { username, email } = req.body;
 
     try {
         const [conflict] = await db.query(
@@ -36,8 +38,8 @@ const updateProfile = async (req, res) => {
         }
 
         await db.query(
-            'UPDATE users SET username = ?, email = ?, avatar_url = ? WHERE user_id = ?',
-            [username, email, avatar_url || null, req.user.user_id]
+            'UPDATE users SET username = ?, email = ? WHERE user_id = ?',
+            [username, email, req.user.user_id]
         );
 
         const [updatedUsers] = await db.query(
@@ -83,4 +85,50 @@ const changePassword = async (req, res) => {
     }
 };
 
-module.exports = { getProfile, updateProfile, changePassword };
+// PUT /api/users/me/avatar
+const uploadAvatar = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'Aucun fichier envoyé' });
+    }
+
+    try {
+        const [rows] = await db.query('SELECT avatar_url FROM users WHERE user_id = ?', [req.user.user_id]);
+        const oldUrl = rows[0]?.avatar_url;
+
+        if (oldUrl && oldUrl.startsWith('/uploads/')) {
+            const oldPath = path.join(__dirname, '../../', oldUrl);
+            fs.unlink(oldPath, () => {});
+        }
+
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        await db.query('UPDATE users SET avatar_url = ? WHERE user_id = ?', [avatarUrl, req.user.user_id]);
+
+        res.json({ message: 'Avatar mis à jour', avatar_url: avatarUrl });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+// DELETE /api/users/me/avatar
+const deleteAvatar = async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT avatar_url FROM users WHERE user_id = ?', [req.user.user_id]);
+        const oldUrl = rows[0]?.avatar_url;
+
+        if (oldUrl && oldUrl.startsWith('/uploads/')) {
+            const oldPath = path.join(__dirname, '../../', oldUrl);
+            fs.unlink(oldPath, () => {});
+        }
+
+        await db.query('UPDATE users SET avatar_url = NULL WHERE user_id = ?', [req.user.user_id]);
+        res.json({ message: 'Avatar supprimé' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+module.exports = { getProfile, updateProfile, changePassword, uploadAvatar, deleteAvatar };
