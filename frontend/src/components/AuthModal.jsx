@@ -8,6 +8,7 @@ export default function AuthModal({ onClose }) {
 
     const [loginEmail, setLoginEmail] = useState('');
     const [loginPassword, setLoginPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(false);
 
     const [username, setUsername] = useState('');
     const [regEmail, setRegEmail] = useState('');
@@ -20,7 +21,7 @@ export default function AuthModal({ onClose }) {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const res = await api.post('/auth/login', { email: loginEmail, password: loginPassword });
+            const res = await api.post('/auth/login', { email: loginEmail, password: loginPassword, rememberMe });
             login(res.data.token, res.data.user);
             onClose();
         } catch (err) {
@@ -83,6 +84,14 @@ export default function AuthModal({ onClose }) {
                                 required
                             />
                         </div>
+                        <label className="remember-me">
+                            <input
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                            />
+                            Rester connecté pendant 7 jours
+                        </label>
                         <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
                             Se connecter
                         </button>

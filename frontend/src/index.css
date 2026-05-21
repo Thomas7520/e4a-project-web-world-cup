@@ -194,6 +194,20 @@ input:focus {
     text-align: center;
 }
 
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    cursor: pointer;
+}
+
+.remember-me input {
+    width: auto;
+    cursor: pointer;
+}
+
 .toast-container {
     position: fixed;
     bottom: 24px;

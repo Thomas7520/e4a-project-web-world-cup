@@ -34,7 +34,7 @@ const register = async (req, res) => {
 
 // POST /api/auth/login
 const login = async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     try {
         const [users] = await db.query(
@@ -66,7 +66,7 @@ const login = async (req, res) => {
         const token = jwt.sign(
             { user_id: user.user_id, username: user.username, role: user.role },
             process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN }
+            { expiresIn: rememberMe ? '7d' : '1h' }
         );
 
         res.json({
