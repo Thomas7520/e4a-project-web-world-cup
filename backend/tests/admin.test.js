@@ -22,22 +22,28 @@ const authOk = () => db.query.mockResolvedValueOnce([[{ is_active: 1 }]]);
 beforeEach(() => jest.clearAllMocks());
 
 describe('GET /api/admin/users', () => {
-    const userList = [[{ user_id: 1, username: 'Alice', email: 'a@a.com', role: 'user', is_active: 1 }]];
+    const mockCount = [[{ total: 1 }]];
+    const mockUsers = [[{ user_id: 1, username: 'Alice', email: 'a@a.com', role: 'user', is_active: 1 }]];
 
     it('autorise un modérateur à lister les utilisateurs', async () => {
         authOk();
-        db.query.mockResolvedValueOnce(userList);
+        db.query
+            .mockResolvedValueOnce(mockCount)
+            .mockResolvedValueOnce(mockUsers);
 
         const res = await request(app).get('/api/admin/users')
             .set('Authorization', `Bearer ${tokens.moderator}`);
 
         expect(res.status).toBe(200);
-        expect(Array.isArray(res.body)).toBe(true);
+        expect(Array.isArray(res.body.users)).toBe(true);
+        expect(res.body.total).toBe(1);
     });
 
     it('autorise un admin à lister les utilisateurs', async () => {
         authOk();
-        db.query.mockResolvedValueOnce(userList);
+        db.query
+            .mockResolvedValueOnce(mockCount)
+            .mockResolvedValueOnce(mockUsers);
 
         const res = await request(app).get('/api/admin/users')
             .set('Authorization', `Bearer ${tokens.admin}`);
@@ -189,6 +195,58 @@ describe('PUT /api/admin/users/:id', () => {
             .send({ username: 'Test', email: 'test@example.com' });
 
         expect(res.status).toBe(403);
+    });
+});
+
+describe('DELETE /api/admin/users/:id', () => {
+    it('un super_admin peut supprimer un utilisateur normal', async () => {
+        authOk();
+        db.query
+            .mockResolvedValueOnce([[{ user_id: 99, role: 'user' }]])
+            .mockResolvedValueOnce([{}]);
+
+        const res = await request(app).delete('/api/admin/users/99')
+            .set('Authorization', `Bearer ${tokens.super_admin}`);
+
+        expect(res.status).toBe(200);
+    });
+
+    it('refuse de supprimer un super_admin (403)', async () => {
+        authOk();
+        db.query.mockResolvedValueOnce([[{ user_id: 99, role: 'super_admin' }]]);
+
+        const res = await request(app).delete('/api/admin/users/99')
+            .set('Authorization', `Bearer ${tokens.super_admin}`);
+
+        expect(res.status).toBe(403);
+    });
+
+    it('refuse de supprimer son propre compte (400)', async () => {
+        authOk();
+
+        const res = await request(app).delete('/api/admin/users/40')
+            .set('Authorization', `Bearer ${tokens.super_admin}`);
+
+        expect(res.status).toBe(400);
+    });
+
+    it('un admin ne peut pas supprimer un utilisateur (403)', async () => {
+        authOk();
+
+        const res = await request(app).delete('/api/admin/users/99')
+            .set('Authorization', `Bearer ${tokens.admin}`);
+
+        expect(res.status).toBe(403);
+    });
+
+    it("renvoie 404 si l'utilisateur est introuvable", async () => {
+        authOk();
+        db.query.mockResolvedValueOnce([[]]);
+
+        const res = await request(app).delete('/api/admin/users/9999')
+            .set('Authorization', `Bearer ${tokens.super_admin}`);
+
+        expect(res.status).toBe(404);
     });
 });
 
