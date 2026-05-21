@@ -152,6 +152,13 @@ input:focus {
     z-index: 100;
 }
 
+.modal-backdrop.modal-backdrop--center {
+    display: grid;
+    place-items: center;
+    padding: 16px;
+}
+
+
 .modal-card {
     background: var(--white);
     border-radius: var(--radius);
@@ -159,7 +166,7 @@ input:focus {
     width: 100%;
     max-width: 400px;
     max-height: 90vh;
-    overflow-y: auto;
+    overflow-y: hidden;
 }
 
 .modal-tabs {

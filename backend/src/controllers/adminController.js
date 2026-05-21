@@ -2,13 +2,23 @@ const db = require('../config/db');
 
 const ROLE_LEVEL = { user: 0, moderator: 1, admin: 2, super_admin: 3 };
 
-// GET /api/admin/users — lister tous les utilisateurs
+// GET /api/admin/users — lister les utilisateurs avec pagination et recherche
 const getAllUsers = async (req, res) => {
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+    const offset = (page - 1) * limit;
+    const search = req.query.search ? `%${req.query.search}%` : null;
+
+    const where  = search ? 'WHERE username LIKE ? OR email LIKE ?' : '';
+    const params = search ? [search, search] : [];
+
     try {
+        const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM users ${where}`, params);
         const [users] = await db.query(
-            'SELECT user_id, username, email, avatar_url, role, is_active, created_at, last_login FROM users ORDER BY created_at DESC'
+            `SELECT user_id, username, email, avatar_url, role, is_active, created_at, last_login FROM users ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+            [...params, limit, offset]
         );
-        res.json(users);
+        res.json({ users, total, page, totalPages: Math.ceil(total / limit) });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erreur serveur' });
@@ -144,4 +154,32 @@ const updateMatchScore = async (req, res) => {
     }
 };
 
-module.exports = { getAllUsers, toggleUserActive, toggleUserRole, updateUserInfo, updateMatchScore };
+// DELETE /api/admin/users/:id — supprimer un compte (super_admin uniquement)
+const deleteUser = async (req, res) => {
+    const { id } = req.params;
+
+    if (parseInt(id) === req.user.user_id) {
+        return res.status(400).json({ message: 'Vous ne pouvez pas supprimer votre propre compte' });
+    }
+
+    try {
+        const [users] = await db.query('SELECT user_id, role FROM users WHERE user_id = ?', [id]);
+
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'Utilisateur introuvable' });
+        }
+
+        if (users[0].role === 'super_admin') {
+            return res.status(403).json({ message: 'Impossible de supprimer un super-administrateur' });
+        }
+
+        await db.query('DELETE FROM users WHERE user_id = ?', [id]);
+        res.json({ message: 'Utilisateur supprimé' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+module.exports = { getAllUsers, toggleUserActive, toggleUserRole, updateUserInfo, updateMatchScore, deleteUser };

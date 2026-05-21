@@ -24,6 +24,7 @@ api.interceptors.response.use(
             localStorage.removeItem('token');
             const message = error.response?.data?.message || '';
             window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { message } }));
+            return new Promise(() => {});
         }
         return Promise.reject(error);
     }

@@ -19,14 +19,6 @@
     align-items: center;
 }
 
-.role-select {
-    padding: 5px 8px;
-    font-size: 0.85rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--white);
-    cursor: pointer;
-}
 
 .admin-search {
     width: 100%;
@@ -34,8 +26,56 @@
     margin-bottom: 16px;
 }
 
+.swal-popup {
+    border-radius: 8px !important;
+    padding: 28px 32px !important;
+    font-family: 'Segoe UI', Arial, sans-serif !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+    width: 480px !important;
+    max-width: calc(100vw - 32px) !important;
+}
+
+.swal-title {
+    font-size: 1.4rem !important;
+    color: #1a1a2e !important;
+    font-weight: 700 !important;
+    margin-bottom: 8px !important;
+}
+
+.swal-text {
+    color: #6c757d !important;
+    font-size: 0.9rem !important;
+    margin-bottom: 0 !important;
+}
+
+.swal-actions {
+    gap: 8px !important;
+    margin-top: 20px !important;
+    justify-content: stretch !important;
+}
+
+.swal-actions .btn {
+    flex: 1;
+    margin: 0 !important;
+}
+
 .table-wrapper {
     overflow-x: auto;
+}
+
+.admin-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.pagination-info {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    min-width: 100px;
+    text-align: center;
 }
 
 @media (max-width: 768px) {
