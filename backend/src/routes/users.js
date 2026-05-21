@@ -11,6 +11,7 @@ router.get('/me', requireAuth, getProfile);
 router.put('/me',
     requireAuth,
     body('username').notEmpty().withMessage("Le nom d'utilisateur est obligatoire").isLength({ min: 3 }).withMessage("Le nom d'utilisateur doit contenir au moins 3 caractères"),
+    body('email').isEmail().withMessage('Email invalide'),
     body('avatar_url').optional().isURL().withMessage("URL de l'avatar invalide"),
     validate,
     updateProfile

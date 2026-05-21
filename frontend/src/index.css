@@ -112,6 +112,7 @@ input:focus {
 
 .msg-error   { color: var(--error);   font-size: 0.9rem; }
 .msg-success { color: var(--success); font-size: 0.9rem; }
+.field-hint  { color: var(--text-light); font-size: 0.8rem; margin-top: 2px; }
 
 .table {
     width: 100%;

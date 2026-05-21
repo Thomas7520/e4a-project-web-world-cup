@@ -4,7 +4,7 @@ const db = require('../config/db');
 const getProfile = async (req, res) => {
     try {
         const [users] = await db.query(
-            'SELECT user_id, username, email, avatar_url, is_admin, created_at, last_login FROM users WHERE user_id = ?',
+            'SELECT user_id, username, email, avatar_url, role, created_at, last_login FROM users WHERE user_id = ?',
             [req.user.user_id]
         );
 
@@ -22,26 +22,25 @@ const getProfile = async (req, res) => {
 
 // PUT /api/users/me
 const updateProfile = async (req, res) => {
-    const { username, avatar_url } = req.body;
+    const { username, email, avatar_url } = req.body;
 
     try {
-        // Vérifier que le nouveau username n'est pas déjà pris par un autre utilisateur
-        const [existingUsers] = await db.query(
-            'SELECT user_id FROM users WHERE username = ? AND user_id != ?',
-            [username, req.user.user_id]
+        const [conflict] = await db.query(
+            'SELECT user_id FROM users WHERE (username = ? OR email = ?) AND user_id != ?',
+            [username, email, req.user.user_id]
         );
 
-        if (existingUsers.length > 0) {
-            return res.status(409).json({ message: "Ce nom d'utilisateur est déjà utilisé" });
+        if (conflict.length > 0) {
+            return res.status(409).json({ message: "Ce nom d'utilisateur ou cet email est déjà utilisé" });
         }
 
         await db.query(
-            'UPDATE users SET username = ?, avatar_url = ? WHERE user_id = ?',
-            [username, avatar_url || null, req.user.user_id]
+            'UPDATE users SET username = ?, email = ?, avatar_url = ? WHERE user_id = ?',
+            [username, email, avatar_url || null, req.user.user_id]
         );
 
         const [updatedUsers] = await db.query(
-            'SELECT user_id, username, email, avatar_url, is_admin, created_at FROM users WHERE user_id = ?',
+            'SELECT user_id, username, email, avatar_url, role, created_at FROM users WHERE user_id = ?',
             [req.user.user_id]
         );
 

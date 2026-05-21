@@ -1,25 +1,24 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import api from '../services/api';
 import './Profile.css';
 
 export default function Profile() {
     const { user, login } = useAuth();
+    const { addToast } = useToast();
     const [username, setUsername] = useState(user?.username || '');
+    const [email, setEmail] = useState(user?.email || '');
     const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || '');
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
-        setSuccess('');
         try {
-            const res = await api.put('/users/me', { username, avatar_url: avatarUrl });
+            const res = await api.put('/users/me', { username, email, avatar_url: avatarUrl });
             login(localStorage.getItem('token'), res.data.user);
-            setSuccess('Profil mis à jour avec succès');
+            addToast('Profil mis à jour avec succès');
         } catch (err) {
-            setError(err.response?.data?.message || 'Erreur lors de la mise à jour');
+            addToast(err.response?.data?.message || 'Erreur lors de la mise à jour', 'error');
         }
     };
 
@@ -35,12 +34,14 @@ export default function Profile() {
                     <p className="profile-email">{user?.email}</p>
                 </div>
 
-                {error && <p className="msg-error">{error}</p>}
-                {success && <p className="msg-success">{success}</p>}
-
                 <div className="form-group">
                     <label>Nom d'utilisateur</label>
                     <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                </div>
+
+                <div className="form-group">
+                    <label>Email</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
 
                 <div className="form-group">

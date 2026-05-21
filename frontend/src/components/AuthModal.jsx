@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../services/api';
@@ -23,6 +24,7 @@ export default function AuthModal({ onClose }) {
         try {
             const res = await api.post('/auth/login', { email: loginEmail, password: loginPassword, rememberMe });
             login(res.data.token, res.data.user);
+            addToast(`Bienvenue, ${res.data.user.username} !`);
             onClose();
         } catch (err) {
             addToast(err.response?.data?.message || 'Erreur de connexion', 'error');
@@ -44,7 +46,7 @@ export default function AuthModal({ onClose }) {
         }
     };
 
-    return (
+    return createPortal(
         <div className="modal-backdrop" onClick={onClose}>
             <div className="modal-card" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-tabs">
@@ -127,6 +129,7 @@ export default function AuthModal({ onClose }) {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                             />
+                            <p className="field-hint">8 caractères minimum, une majuscule et un caractère spécial</p>
                         </div>
                         <div className="form-group">
                             <label>Confirmer le mot de passe</label>
@@ -143,6 +146,7 @@ export default function AuthModal({ onClose }) {
                     </form>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

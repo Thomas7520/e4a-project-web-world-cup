@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -158,7 +159,7 @@ export default function Admin() {
             </table>
             </div>
 
-            {editUser && (
+            {editUser && createPortal(
                 <div className="modal-backdrop" onClick={() => setEditUser(null)}>
                     <div className="modal-card" onClick={(e) => e.stopPropagation()}>
                         <form onSubmit={handleEditSubmit} className="modal-form">
@@ -188,7 +189,8 @@ export default function Admin() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

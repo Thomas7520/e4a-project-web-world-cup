@@ -9,7 +9,10 @@ const validate = require('../middlewares/validate');
 router.post('/register',
     body('username').notEmpty().withMessage("Le nom d'utilisateur est obligatoire").isLength({ min: 3 }).withMessage("Le nom d'utilisateur doit contenir au moins 3 caractères"),
     body('email').isEmail().withMessage('Email invalide'),
-    body('password').isLength({ min: 6 }).withMessage('Le mot de passe doit contenir au moins 6 caractères'),
+    body('password')
+        .isLength({ min: 8 }).withMessage('Le mot de passe doit contenir au moins 8 caractères')
+        .matches(/[A-Z]/).withMessage('Le mot de passe doit contenir au moins une majuscule')
+        .matches(/[!@#$%^&*()\-_=+\[\]{};:'",.<>?\/\\|`~]/).withMessage('Le mot de passe doit contenir au moins un caractère spécial'),
     validate,
     register
 );

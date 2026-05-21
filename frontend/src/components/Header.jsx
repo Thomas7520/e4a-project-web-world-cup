@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import api from '../services/api';
 import AuthModal from './AuthModal';
 import './Header.css';
@@ -28,6 +29,7 @@ const IconChevron = () => (
 
 export default function Header() {
     const { user, logout } = useAuth();
+    const { addToast } = useToast();
     const navigate = useNavigate();
     const location = useLocation();
     const [modalOpen, setModalOpen] = useState(false);
@@ -64,6 +66,7 @@ export default function Header() {
         setDropdownOpen(false);
         setMenuOpen(false);
         navigate('/');
+        addToast('Vous avez été déconnecté', 'info');
     };
 
     const isStaff = user && ['moderator', 'admin', 'super_admin'].includes(user.role);
