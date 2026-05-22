@@ -81,8 +81,10 @@ export default function Header() {
                     <Link to="/" className="header-logo">⚽ Coupe du Monde 2026</Link>
                     <nav className="header-main-nav">
                         <Link to="/" className="header-link">Accueil</Link>
+                        <Link to="/teams" className="header-link">Equipes</Link>
+                        <Link to="/groups" className="header-link">Groupes</Link>
                         <Link to="/matches" className="header-link">Matchs</Link>
-                        <Link to="/paris" className="header-link">Paris</Link>
+                        <Link to="/stadiums" className="header-link">Stades</Link>
                     </nav>
                 </div>
 
@@ -132,8 +134,10 @@ export default function Header() {
                 {menuOpen && (
                     <nav className="header-mobile-nav">
                         <Link to="/" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Accueil</Link>
+                        <Link to="/teams" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Equipes</Link>
+                        <Link to="/groups" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Groupes</Link>
                         <Link to="/matches" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Matchs</Link>
-                        <Link to="/paris" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Paris</Link>
+                        <Link to="/stadiums" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Stades</Link>
                         <div className="mobile-nav-separator" />
                         {user ? (
                             <>

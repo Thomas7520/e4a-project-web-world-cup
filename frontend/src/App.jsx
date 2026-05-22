@@ -8,6 +8,12 @@ import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 import Header from './components/Header';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
+import Teams from './pages/Teams';
+import TeamDetail from './pages/TeamDetail';
+import Groups from './pages/Groups';
+import Matches from './pages/Matches';
+import MatchDetail from './pages/MatchDetail';
+import Stadiums from './pages/Stadiums';
 import api from './services/api';
 
 function AuthChecker() {
@@ -60,6 +66,13 @@ function App() {
                                 <Admin />
                             </AdminRoute>
                         } />
+
+                        <Route path="/teams" element={<Teams />} />
+                        <Route path="/teams/:id" element={<TeamDetail />} />
+                        <Route path="/groups" element={<Groups />} />
+                        <Route path="/matches" element={<Matches />} />
+                        <Route path="/matches/:id" element={<MatchDetail />} />
+                        <Route path="/stadiums" element={<Stadiums />} />
 
                         <Route path="/" element={<p>Accueil</p>} />
                     </Routes>
