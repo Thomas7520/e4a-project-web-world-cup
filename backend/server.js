@@ -14,11 +14,23 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const authRoutes = require('./src/routes/auth');
 const userRoutes = require('./src/routes/users');
 const adminRoutes = require('./src/routes/admin');
+const competitionRoutes = require('./src/routes/competitions');
+const teamRoutes = require('./src/routes/teams');
+const playerRoutes = require('./src/routes/players');
+const groupRoutes = require('./src/routes/groups');
+const matchRoutes = require('./src/routes/matches');
+const stadiumRoutes = require('./src/routes/stadiums');
 
 // Déclaration des routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/competitions', competitionRoutes);
+app.use('/api/teams', teamRoutes);
+app.use('/api/players', playerRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/matches', matchRoutes);
+app.use('/api/stadiums', stadiumRoutes);
 
 // Route de test
 app.get('/', (req, res) => {
