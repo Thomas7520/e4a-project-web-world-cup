@@ -9,3 +9,147 @@ CREATE TABLE IF NOT EXISTS users (
     created_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     last_login    TIMESTAMP    DEFAULT NULL
 );
+
+CREATE TABLE IF NOT EXISTS competitions (
+    competition_id INT AUTO_INCREMENT PRIMARY KEY,
+    name           VARCHAR(100) NOT NULL,
+    year           INT          NOT NULL,
+    host_countries VARCHAR(120) NOT NULL,
+    start_date     DATE         NOT NULL,
+    end_date       DATE         NOT NULL,
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_competition_year (name, year)
+);
+
+CREATE TABLE IF NOT EXISTS groups_pool (
+    group_id       INT AUTO_INCREMENT PRIMARY KEY,
+    competition_id INT     NOT NULL,
+    name           CHAR(1) NOT NULL,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_group_competition (competition_id, name),
+    CONSTRAINT fk_groups_competition
+        FOREIGN KEY (competition_id) REFERENCES competitions(competition_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS teams (
+    team_id        INT AUTO_INCREMENT PRIMARY KEY,
+    competition_id INT          NOT NULL,
+    group_id       INT          DEFAULT NULL,
+    name           VARCHAR(100) NOT NULL,
+    fifa_code      CHAR(3)      NOT NULL UNIQUE,
+    iso_code       CHAR(2)      NOT NULL,
+    confederation  VARCHAR(20)  DEFAULT NULL,
+    coach          VARCHAR(100) DEFAULT NULL,
+    flag_url       VARCHAR(255) DEFAULT NULL,
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_teams_group (group_id),
+    CONSTRAINT fk_teams_competition
+        FOREIGN KEY (competition_id) REFERENCES competitions(competition_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_teams_group
+        FOREIGN KEY (group_id) REFERENCES groups_pool(group_id)
+        ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS players (
+    player_id     INT AUTO_INCREMENT PRIMARY KEY,
+    team_id       INT NOT NULL,
+    full_name     VARCHAR(120) NOT NULL,
+    position      ENUM('goalkeeper', 'defender', 'midfielder', 'forward') NOT NULL,
+    shirt_number  INT DEFAULT NULL,
+    club          VARCHAR(120) DEFAULT NULL,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_player_number_team (team_id, shirt_number),
+    INDEX idx_players_team (team_id),
+    CONSTRAINT fk_players_team
+        FOREIGN KEY (team_id) REFERENCES teams(team_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS stadiums (
+    stadium_id INT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(120) NOT NULL UNIQUE,
+    city       VARCHAR(100) NOT NULL,
+    country    VARCHAR(80)  NOT NULL,
+    capacity   INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS matches (
+    match_id       INT AUTO_INCREMENT PRIMARY KEY,
+    competition_id INT NOT NULL,
+    group_id       INT DEFAULT NULL,
+    home_team_id   INT NOT NULL,
+    away_team_id   INT NOT NULL,
+    stadium_id     INT DEFAULT NULL,
+    match_number   INT NOT NULL UNIQUE,
+    stage          ENUM('group', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final') DEFAULT 'group',
+    status         ENUM('scheduled', 'live', 'finished', 'postponed') DEFAULT 'scheduled',
+    kickoff_at     DATETIME NOT NULL,
+    home_score     INT DEFAULT NULL,
+    away_score     INT DEFAULT NULL,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_matches_date (kickoff_at),
+    INDEX idx_matches_status (status),
+    INDEX idx_matches_stage (stage),
+    INDEX idx_matches_home_team (home_team_id),
+    INDEX idx_matches_away_team (away_team_id),
+    CONSTRAINT fk_matches_competition
+        FOREIGN KEY (competition_id) REFERENCES competitions(competition_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_matches_group
+        FOREIGN KEY (group_id) REFERENCES groups_pool(group_id)
+        ON DELETE SET NULL,
+    CONSTRAINT fk_matches_home_team
+        FOREIGN KEY (home_team_id) REFERENCES teams(team_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_matches_away_team
+        FOREIGN KEY (away_team_id) REFERENCES teams(team_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_matches_stadium
+        FOREIGN KEY (stadium_id) REFERENCES stadiums(stadium_id)
+        ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    event_id    INT AUTO_INCREMENT PRIMARY KEY,
+    match_id    INT NOT NULL,
+    team_id     INT NOT NULL,
+    player_id   INT DEFAULT NULL,
+    minute      INT NOT NULL,
+    event_type  ENUM('goal', 'assist', 'yellow_card', 'red_card', 'substitution', 'penalty') NOT NULL,
+    description VARCHAR(255) DEFAULT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_events_match (match_id),
+    INDEX idx_events_type (event_type),
+    CONSTRAINT fk_events_match
+        FOREIGN KEY (match_id) REFERENCES matches(match_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_events_team
+        FOREIGN KEY (team_id) REFERENCES teams(team_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_events_player
+        FOREIGN KEY (player_id) REFERENCES players(player_id)
+        ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS referees (
+    referee_id  INT AUTO_INCREMENT PRIMARY KEY,
+    full_name   VARCHAR(120) NOT NULL UNIQUE,
+    nationality VARCHAR(80) DEFAULT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS match_referees (
+    match_id   INT NOT NULL,
+    referee_id INT NOT NULL,
+    role       ENUM('main', 'assistant', 'var', 'fourth') DEFAULT 'main',
+    PRIMARY KEY (match_id, referee_id, role),
+    CONSTRAINT fk_match_referees_match
+        FOREIGN KEY (match_id) REFERENCES matches(match_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_match_referees_referee
+        FOREIGN KEY (referee_id) REFERENCES referees(referee_id)
+        ON DELETE CASCADE
+);
