@@ -153,3 +153,61 @@ CREATE TABLE IF NOT EXISTS match_referees (
         FOREIGN KEY (referee_id) REFERENCES referees(referee_id)
         ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS standings (
+    standing_id     INT AUTO_INCREMENT PRIMARY KEY,
+    competition_id  INT NOT NULL,
+    group_id        INT NOT NULL,
+    team_id         INT NOT NULL,
+    position        INT NOT NULL,
+    matches_played  INT DEFAULT 0,
+    wins            INT DEFAULT 0,
+    draws           INT DEFAULT 0,
+    losses          INT DEFAULT 0,
+    goals_for       INT DEFAULT 0,
+    goals_against   INT DEFAULT 0,
+    goal_difference INT DEFAULT 0,
+    points          INT DEFAULT 0,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_standing_group_team (group_id, team_id),
+    INDEX idx_standings_group (group_id),
+    INDEX idx_standings_competition (competition_id),
+    CONSTRAINT fk_standings_competition
+        FOREIGN KEY (competition_id) REFERENCES competitions(competition_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_standings_group
+        FOREIGN KEY (group_id) REFERENCES groups_pool(group_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_standings_team
+        FOREIGN KEY (team_id) REFERENCES teams(team_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS knockout_matches (
+    knockout_id     INT AUTO_INCREMENT PRIMARY KEY,
+    competition_id  INT NOT NULL,
+    stage           ENUM('round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final') NOT NULL,
+    position        INT NOT NULL,
+    home_team_id    INT DEFAULT NULL,
+    away_team_id    INT DEFAULT NULL,
+    match_id        INT DEFAULT NULL,
+    winner_team_id  INT DEFAULT NULL,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_knockout_position (competition_id, stage, position),
+    INDEX idx_knockout_stage (stage),
+    INDEX idx_knockout_competition (competition_id),
+    CONSTRAINT fk_knockout_competition
+        FOREIGN KEY (competition_id) REFERENCES competitions(competition_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_knockout_home_team
+        FOREIGN KEY (home_team_id) REFERENCES teams(team_id)
+        ON DELETE SET NULL,
+    CONSTRAINT fk_knockout_away_team
+        FOREIGN KEY (away_team_id) REFERENCES teams(team_id)
+        ON DELETE SET NULL,
+    CONSTRAINT fk_knockout_match
+        FOREIGN KEY (match_id) REFERENCES matches(match_id)
+        ON DELETE SET NULL
+);
