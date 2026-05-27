@@ -1,4 +1,6 @@
 const db = require('../config/db');
+const standingsService = require('../services/standingsService');
+const knockoutService = require('../services/knockoutService');
 
 const ROLE_LEVEL = { user: 0, moderator: 1, admin: 2, super_admin: 3 };
 
@@ -140,11 +142,37 @@ const updateMatchScore = async (req, res) => {
         return res.status(400).json({ message: 'Les scores domicile et extérieur sont obligatoires' });
     }
 
+    const newStatus = status || 'finished';
+
     try {
         await db.query(
             'UPDATE matches SET home_score = ?, away_score = ?, status = ? WHERE match_id = ?',
-            [home_score, away_score, status || 'finished', id]
+            [home_score, away_score, newStatus, id]
         );
+
+        const [matches] = await db.query(
+            'SELECT match_id, competition_id, group_id, stage, home_team_id, away_team_id FROM matches WHERE match_id = ?',
+            [id]
+        );
+
+        if (matches.length === 0) {
+            return res.status(404).json({ message: 'Match introuvable' });
+        }
+
+        const match = matches[0];
+
+        if (newStatus === 'finished') {
+            if (match.stage === 'group' && match.group_id) {
+                await standingsService.recalculateGroupStandings(match.competition_id, match.group_id);
+            }
+
+            if (match.stage !== 'group') {
+                const winnerId = home_score > away_score ? match.home_team_id : away_score > home_score ? match.away_team_id : null;
+                if (winnerId) {
+                    await knockoutService.updateBracketAfterMatch(id, winnerId);
+                }
+            }
+        }
 
         res.json({ message: 'Score mis à jour' });
 
