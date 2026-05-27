@@ -13,10 +13,8 @@ const db = require('../config/db');
  */
 async function initializeKnockoutBracket(competitionId) {
   try {
-    // Vérifier si le bracket existe déjà
     const [existing] = await db.query(
-      `SELECT knockout_id FROM knockout_matches 
-       WHERE competition_id = ? LIMIT 1`,
+      `SELECT knockout_id FROM knockout_matches WHERE competition_id = ? LIMIT 1`,
       [competitionId]
     );
 
@@ -25,97 +23,77 @@ async function initializeKnockoutBracket(competitionId) {
       return;
     }
 
-    // Récupérer les 12 groupes
     const [groups] = await db.query(
-      `SELECT group_id FROM groups_pool WHERE competition_id = ? ORDER BY name ASC`,
+      `SELECT group_id, name FROM groups_pool WHERE competition_id = ? ORDER BY name ASC`,
       [competitionId]
     );
 
-    if (groups.length !== 12) {
-      throw new Error('La compétition doit avoir 12 groupes');
+    if (groups.length === 0) {
+      throw new Error('Aucun groupe trouvé pour cette compétition');
     }
 
-    // 1. Créer les 16 matchs des 8e de finale
-    // Positions : 1 vs 2 de groupes opposés
-    // Groupe A (1er) vs Groupe B (2e), Groupe C (1er) vs Groupe D (2e), etc.
-    const eighthFinalPairings = [
-      { groupA: 0, groupB: 1 }, // A1 vs B2
-      { groupA: 1, groupB: 0 }, // B1 vs A2
-      { groupA: 2, groupB: 3 }, // C1 vs D2
-      { groupA: 3, groupB: 2 }, // D1 vs C2
-      { groupA: 4, groupB: 5 }, // E1 vs F2
-      { groupA: 5, groupB: 4 }, // F1 vs E2
-      { groupA: 6, groupB: 7 }, // G1 vs H2
-      { groupA: 7, groupB: 6 }, // H1 vs G2
-      { groupA: 8, groupB: 9 }, // I1 vs J2
-      { groupA: 9, groupB: 8 }, // J1 vs I2
-      { groupA: 10, groupB: 11 }, // K1 vs L2
-      { groupA: 11, groupB: 10 }, // L1 vs K2
-      { groupA: 0, groupB: 5 }, // A (1er/2e) vs F (2e/1er)
-      { groupA: 1, groupB: 4 }, // B vs E
-      { groupA: 2, groupB: 7 }, // C vs H
-      { groupA: 3, groupB: 6 }, // D vs G
-    ];
+    const [qualifiers] = await db.query(
+      `SELECT s.team_id, s.position, g.name as group_name
+       FROM standings s
+       JOIN groups_pool g ON s.group_id = g.group_id
+       WHERE g.competition_id = ? AND s.position IN (1, 2)
+       ORDER BY g.name ASC, s.position ASC`,
+      [competitionId]
+    );
 
-    for (let i = 0; i < eighthFinalPairings.length; i++) {
-      const pairing = eighthFinalPairings[i];
-      
-      // Récupérer les équipes qualifiées
-      const [teamA] = await db.query(
-        `SELECT team_id FROM standings 
-         WHERE group_id = ? AND position = ?`,
-        [groups[pairing.groupA].group_id, pairing.groupA % 2 === 0 ? 1 : 2]
+    const totalQualifiers = qualifiers.length;
+    if (totalQualifiers < 8 || totalQualifiers > 32 || (totalQualifiers & (totalQualifiers - 1)) !== 0) {
+      throw new Error('Impossible de générer le bracket : le nombre de qualifiés doit être une puissance de 2 comprise entre 8 et 32');
+    }
+
+    const winners = qualifiers.filter((q) => q.position === 1);
+    const runners = qualifiers.filter((q) => q.position === 2);
+
+    if (winners.length !== runners.length) {
+      throw new Error('Données de qualification invalides : le nombre de premiers et de deuxièmes doit être identique');
+    }
+
+    const stages = getStageNames(totalQualifiers);
+    const firstStage = stages[0];
+    const firstStageMatchCount = totalQualifiers / 2;
+
+    for (let i = 0; i < firstStageMatchCount; i++) {
+      const home = winners[i];
+      const away = runners[firstStageMatchCount - 1 - i];
+
+      await db.query(
+        `INSERT INTO knockout_matches 
+          (competition_id, stage, position, home_team_id, away_team_id)
+         VALUES (?, ?, ?, ?, ?)`,
+        [competitionId, firstStage, i + 1, home.team_id, away.team_id]
       );
+    }
 
-      const [teamB] = await db.query(
-        `SELECT team_id FROM standings 
-         WHERE group_id = ? AND position = ?`,
-        [groups[pairing.groupB].group_id, pairing.groupB % 2 === 0 ? 2 : 1]
-      );
+    for (let stageIndex = 1; stageIndex < stages.length; stageIndex++) {
+      const stageName = stages[stageIndex];
+      const matchCount = totalQualifiers / Math.pow(2, stageIndex + 1);
 
-      if (teamA.length > 0 && teamB.length > 0) {
+      for (let i = 0; i < matchCount; i++) {
         await db.query(
           `INSERT INTO knockout_matches 
             (competition_id, stage, position, home_team_id, away_team_id)
-          VALUES (?, 'round_of_16', ?, ?, ?)`,
-          [competitionId, i + 1, teamA[0].team_id, teamB[0].team_id]
+           VALUES (?, ?, ?, NULL, NULL)`,
+          [competitionId, stageName, i + 1]
         );
       }
     }
 
-    // 2. Créer les 8 matchs des quarts de finale
-    for (let i = 0; i < 8; i++) {
-      await db.query(
-        `INSERT INTO knockout_matches 
-          (competition_id, stage, position, home_team_id, away_team_id)
-        VALUES (?, 'quarter_final', ?, NULL, NULL)`,
-        [competitionId, i + 1]
-      );
-    }
-
-    // 3. Créer les 4 matchs des demi-finales
-    for (let i = 0; i < 4; i++) {
-      await db.query(
-        `INSERT INTO knockout_matches 
-          (competition_id, stage, position, home_team_id, away_team_id)
-        VALUES (?, 'semi_final', ?, NULL, NULL)`,
-        [competitionId, i + 1]
-      );
-    }
-
-    // 4. Créer le match pour la 3e place
     await db.query(
       `INSERT INTO knockout_matches 
-        (competition_id, stage, position)
-      VALUES (?, 'third_place', 1)`,
+        (competition_id, stage, position, home_team_id, away_team_id)
+       VALUES (?, 'third_place', 1, NULL, NULL)`,
       [competitionId]
     );
 
-    // 5. Créer la finale
     await db.query(
       `INSERT INTO knockout_matches 
-        (competition_id, stage, position)
-      VALUES (?, 'final', 1)`,
+        (competition_id, stage, position, home_team_id, away_team_id)
+       VALUES (?, 'final', 1, NULL, NULL)`,
       [competitionId]
     );
 
@@ -126,19 +104,10 @@ async function initializeKnockoutBracket(competitionId) {
   }
 }
 
-/**
- * Met à jour le bracket en fonction des résultats des matchs
- * Appelé après la fin d'un match de knockout
- * @param {number} matchId - ID du match terminé
- * @param {number} winnerId - ID de l'équipe gagnante
- * @returns {Promise<void>}
- */
 async function updateBracketAfterMatch(matchId, winnerId) {
   try {
-    // Récupérer le match knockout associé
     const [knockoutMatch] = await db.query(
-      `SELECT knockout_id, competition_id, stage, position FROM knockout_matches 
-       WHERE match_id = ?`,
+      `SELECT knockout_id, competition_id, stage, position FROM knockout_matches WHERE match_id = ?`,
       [matchId]
     );
 
@@ -149,26 +118,19 @@ async function updateBracketAfterMatch(matchId, winnerId) {
 
     const knockout = knockoutMatch[0];
 
-    // Mettre à jour le winner
     await db.query(
-      `UPDATE knockout_matches SET winner_team_id = ? 
-       WHERE knockout_id = ?`,
+      `UPDATE knockout_matches SET winner_team_id = ? WHERE knockout_id = ?`,
       [winnerId, knockout.knockout_id]
     );
 
-    // Déterminer l'équipe suivante et le stage suivant
     const nextStage = getNextStage(knockout.stage);
-    if (!nextStage) return; // Fin de la compétition
+    if (!nextStage) return;
 
-    // Déterminer la position du match suivant
     const nextPosition = Math.ceil(knockout.position / 2);
-
-    // Déterminer si le gagnant va en home ou away
     const isHomeInNext = knockout.position % 2 === 1;
 
-    // Récupérer le match du tour suivant
     const [nextMatches] = await db.query(
-      `SELECT knockout_id, home_team_id, away_team_id FROM knockout_matches 
+      `SELECT knockout_id FROM knockout_matches 
        WHERE competition_id = ? AND stage = ? AND position = ?`,
       [knockout.competition_id, nextStage, nextPosition]
     );
@@ -179,18 +141,41 @@ async function updateBracketAfterMatch(matchId, winnerId) {
     }
 
     const nextMatch = nextMatches[0];
+    const targetColumn = isHomeInNext ? 'home_team_id' : 'away_team_id';
 
-    // Mettre à jour le match suivant avec le gagnant
-    if (isHomeInNext) {
-      await db.query(
-        `UPDATE knockout_matches SET home_team_id = ? WHERE knockout_id = ?`,
-        [winnerId, nextMatch.knockout_id]
+    await db.query(
+      `UPDATE knockout_matches SET ${targetColumn} = ? WHERE knockout_id = ?`,
+      [winnerId, nextMatch.knockout_id]
+    );
+
+    if (knockout.stage === 'semi_final') {
+      const [matchRows] = await db.query(
+        `SELECT home_team_id, away_team_id, home_score, away_score FROM matches WHERE match_id = ?`,
+        [matchId]
       );
-    } else {
-      await db.query(
-        `UPDATE knockout_matches SET away_team_id = ? WHERE knockout_id = ?`,
-        [winnerId, nextMatch.knockout_id]
-      );
+
+      if (matchRows.length > 0) {
+        const currentMatch = matchRows[0];
+        const loserId = currentMatch.home_score > currentMatch.away_score
+          ? currentMatch.away_team_id
+          : currentMatch.home_team_id;
+
+        const [thirdPlaceMatches] = await db.query(
+          `SELECT knockout_id FROM knockout_matches 
+           WHERE competition_id = ? AND stage = 'third_place' AND position = 1`,
+          [knockout.competition_id]
+        );
+
+        if (thirdPlaceMatches.length > 0) {
+          const thirdPlaceMatch = thirdPlaceMatches[0];
+          const loserTarget = knockout.position % 2 === 1 ? 'home_team_id' : 'away_team_id';
+
+          await db.query(
+            `UPDATE knockout_matches SET ${loserTarget} = ? WHERE knockout_id = ?`,
+            [loserId, thirdPlaceMatch.knockout_id]
+          );
+        }
+      }
     }
   } catch (error) {
     console.error('Erreur lors de la mise à jour du bracket:', error);
@@ -198,16 +183,34 @@ async function updateBracketAfterMatch(matchId, winnerId) {
   }
 }
 
-/**
- * Détermine le stage suivant dans la progression
- * @param {string} currentStage - Stage actuel
- * @returns {string|null}
- */
+function getStageNames(qualifierCount) {
+  const names = [];
+
+  if (qualifierCount === 32) {
+    names.push('round_of_32');
+    names.push('round_of_16');
+    names.push('quarter_final');
+    names.push('semi_final');
+  } else if (qualifierCount === 16) {
+    names.push('round_of_16');
+    names.push('quarter_final');
+    names.push('semi_final');
+  } else if (qualifierCount === 8) {
+    names.push('quarter_final');
+    names.push('semi_final');
+  } else {
+    throw new Error('Unsupported qualifier count for knockout bracket');
+  }
+
+  return names;
+}
+
 function getNextStage(currentStage) {
   const stages = {
+    round_of_32: 'round_of_16',
     round_of_16: 'quarter_final',
     quarter_final: 'semi_final',
-    semi_final: ['final', 'third_place'], // Les deux
+    semi_final: 'final',
     third_place: null,
     final: null,
   };
@@ -222,7 +225,7 @@ function getNextStage(currentStage) {
  */
 async function getKnockoutBracket(competitionId) {
   try {
-    const stages = ['round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final'];
+    const stages = ['round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final'];
     const bracket = {};
 
     for (const stage of stages) {

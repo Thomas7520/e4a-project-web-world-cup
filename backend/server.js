@@ -20,6 +20,7 @@ const playerRoutes = require('./src/routes/players');
 const groupRoutes = require('./src/routes/groups');
 const matchRoutes = require('./src/routes/matches');
 const stadiumRoutes = require('./src/routes/stadiums');
+const knockoutRoutes = require('./src/routes/knockout');
 const standingsRoutes = require('./src/routes/standings');
 
 // Déclaration des routes
@@ -33,6 +34,7 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/stadiums', stadiumRoutes);
 app.use('/api/standings', standingsRoutes);
+app.use('/api/knockout', knockoutRoutes);
 
 // Route de test
 app.get('/', (req, res) => {
