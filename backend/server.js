@@ -20,6 +20,7 @@ const playerRoutes = require('./src/routes/players');
 const groupRoutes = require('./src/routes/groups');
 const matchRoutes = require('./src/routes/matches');
 const stadiumRoutes = require('./src/routes/stadiums');
+const standingsRoutes = require('./src/routes/standings');
 
 // Déclaration des routes
 app.use('/api/auth', authRoutes);
@@ -31,6 +32,7 @@ app.use('/api/players', playerRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/stadiums', stadiumRoutes);
+app.use('/api/standings', standingsRoutes);
 
 // Route de test
 app.get('/', (req, res) => {
