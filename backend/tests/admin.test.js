@@ -5,6 +5,9 @@ const request = require('supertest');
 const jwt = require('jsonwebtoken');
 
 jest.mock('../src/config/db', () => ({ query: jest.fn() }));
+jest.mock('../src/services/standingsService', () => ({ recalculateGroupStandings: jest.fn() }));
+jest.mock('../src/services/knockoutService', () => ({ updateBracketAfterMatch: jest.fn() }));
+
 const db = require('../src/config/db');
 const app = require('../server');
 
@@ -253,7 +256,9 @@ describe('DELETE /api/admin/users/:id', () => {
 describe('PUT /api/admin/matches/:id/score', () => {
     it('un admin peut saisir le score d\'un match', async () => {
         authOk();
-        db.query.mockResolvedValueOnce([{}]);
+        db.query
+            .mockResolvedValueOnce([{}])
+            .mockResolvedValueOnce([[{ match_id: 1, competition_id: 1, group_id: 1, stage: 'group', home_team_id: 1, away_team_id: 2 }]]);
 
         const res = await request(app).put('/api/admin/matches/1/score')
             .set('Authorization', `Bearer ${tokens.admin}`)
