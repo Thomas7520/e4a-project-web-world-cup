@@ -22,6 +22,7 @@ const matchRoutes = require('./src/routes/matches');
 const stadiumRoutes = require('./src/routes/stadiums');
 const knockoutRoutes = require('./src/routes/knockout');
 const standingsRoutes = require('./src/routes/standings');
+const statsRoutes = require('./src/routes/stats');
 
 // Déclaration des routes
 app.use('/api/auth', authRoutes);
@@ -35,6 +36,7 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/stadiums', stadiumRoutes);
 app.use('/api/standings', standingsRoutes);
 app.use('/api/knockout', knockoutRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Route de test
 app.get('/', (req, res) => {
