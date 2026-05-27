@@ -15,6 +15,7 @@ import Matches from './pages/Matches';
 import MatchDetail from './pages/MatchDetail';
 import Stadiums from './pages/Stadiums';
 import Standings from './pages/Standings';
+import Knockout from './pages/Knockout';
 import Statistics from './pages/Statistics';
 import api from './services/api';
 
@@ -75,6 +76,7 @@ function App() {
                         <Route path="/matches" element={<Matches />} />
                         <Route path="/stadiums" element={<Stadiums />} />
                         <Route path="/standings" element={<Standings />} />
+                        <Route path="/knockout" element={<Knockout />} />
                         <Route path="/statistics" element={<Statistics />} />
 
                         <Route path="/" element={<p>Accueil</p>} />

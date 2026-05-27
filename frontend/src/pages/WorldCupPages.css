@@ -513,6 +513,59 @@
     color: var(--text-light);
 }
 
+.wc-bracket-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.wc-bracket-stage {
+    padding: 18px;
+}
+
+.wc-bracket-stage h3 {
+    margin-bottom: 14px;
+}
+
+.wc-bracket-match {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+}
+
+.wc-bracket-match span {
+    display: block;
+    font-size: 0.95rem;
+}
+
+.wc-bracket-team {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wc-bracket-team img {
+    width: 26px;
+    height: 18px;
+    object-fit: cover;
+    border-radius: 3px;
+}
+
+.wc-bracket-score {
+    font-weight: 700;
+    text-align: right;
+}
+
+@media (max-width: 1200px) {
+    .wc-bracket-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 900px) {
     .wc-stat-grid {
         grid-template-columns: 1fr;
