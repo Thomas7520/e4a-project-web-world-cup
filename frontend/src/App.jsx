@@ -14,6 +14,7 @@ import Groups from './pages/Groups';
 import Matches from './pages/Matches';
 import MatchDetail from './pages/MatchDetail';
 import Stadiums from './pages/Stadiums';
+import Standings from './pages/Standings';
 import api from './services/api';
 
 function AuthChecker() {
@@ -71,8 +72,8 @@ function App() {
                         <Route path="/teams/:id" element={<TeamDetail />} />
                         <Route path="/groups" element={<Groups />} />
                         <Route path="/matches" element={<Matches />} />
-                        <Route path="/matches/:id" element={<MatchDetail />} />
                         <Route path="/stadiums" element={<Stadiums />} />
+                        <Route path="/standings" element={<Standings />} />
 
                         <Route path="/" element={<p>Accueil</p>} />
                     </Routes>

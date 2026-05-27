@@ -84,6 +84,7 @@ export default function Header() {
                         <Link to="/teams" className="header-link">Equipes</Link>
                         <Link to="/groups" className="header-link">Groupes</Link>
                         <Link to="/matches" className="header-link">Matchs</Link>
+                        <Link to="/standings" className="header-link">Classements</Link>
                         <Link to="/stadiums" className="header-link">Stades</Link>
                     </nav>
                 </div>
@@ -137,6 +138,7 @@ export default function Header() {
                         <Link to="/teams" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Equipes</Link>
                         <Link to="/groups" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Groupes</Link>
                         <Link to="/matches" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Matchs</Link>
+                        <Link to="/standings" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Classements</Link>
                         <Link to="/stadiums" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Stades</Link>
                         <div className="mobile-nav-separator" />
                         {user ? (
