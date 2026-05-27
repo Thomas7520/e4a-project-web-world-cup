@@ -140,6 +140,7 @@ async function getCompetitionStats(competitionId) {
       top_scorers: await getTopScorers(competitionId, 15),
       top_assists: await getTopAssists(competitionId, 15),
       cards: await getCardStats(competitionId, 10),
+      team_stats: await getTeamStats(competitionId),
     };
 
     return stats;
