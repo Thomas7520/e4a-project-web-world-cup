@@ -211,3 +211,57 @@ CREATE TABLE IF NOT EXISTS knockout_matches (
         FOREIGN KEY (match_id) REFERENCES matches(match_id)
         ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS news (
+    news_id      INT AUTO_INCREMENT PRIMARY KEY,
+    title        VARCHAR(255) NOT NULL,
+    content      TEXT         NOT NULL,
+    image_url    VARCHAR(255) DEFAULT NULL,
+    author_id    INT          NOT NULL,
+    published_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_news_author
+        FOREIGN KEY (author_id) REFERENCES users(user_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS leagues (
+    league_id   INT AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(100) NOT NULL,
+    owner_id    INT          NOT NULL,
+    invite_code VARCHAR(20)  NOT NULL UNIQUE,
+    created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_leagues_owner
+        FOREIGN KEY (owner_id) REFERENCES users(user_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS league_members (
+    league_id INT NOT NULL,
+    user_id   INT NOT NULL,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (league_id, user_id),
+    CONSTRAINT fk_league_members_league
+        FOREIGN KEY (league_id) REFERENCES leagues(league_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_league_members_user
+        FOREIGN KEY (user_id) REFERENCES users(user_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS predictions (
+    prediction_id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id               INT NOT NULL,
+    match_id              INT NOT NULL,
+    predicted_home_score  INT NOT NULL,
+    predicted_away_score  INT NOT NULL,
+    points_earned         INT DEFAULT NULL,
+    created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_user_match (user_id, match_id),
+    CONSTRAINT fk_predictions_user
+        FOREIGN KEY (user_id) REFERENCES users(user_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_predictions_match
+        FOREIGN KEY (match_id) REFERENCES matches(match_id)
+        ON DELETE CASCADE
+);
