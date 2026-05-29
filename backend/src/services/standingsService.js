@@ -15,7 +15,7 @@ async function recalculateGroupStandings(competitionId, groupId) {
   try {
     // Récupérer toutes les équipes du groupe
     const [teams] = await db.query(
-      `SELECT team_id FROM teams WHERE group_id = ? AND competition_id = ?`,
+      `SELECT team_id FROM teams WHERE group_id = ? AND competition_id = ? ORDER BY team_id ASC`,
       [groupId, competitionId]
     );
 
@@ -125,16 +125,24 @@ async function calculateTeamStats(competitionId, groupId, teamId) {
         ]
       );
     } else {
+      const [[{ next_position }]] = await db.query(
+        `SELECT COALESCE(MAX(position), 0) + 1 as next_position
+         FROM standings
+         WHERE group_id = ?`,
+        [groupId]
+      );
+
       // Insérer
       await db.query(
         `INSERT INTO standings 
-          (competition_id, group_id, team_id, matches_played, wins, draws, losses, 
+          (competition_id, group_id, team_id, position, matches_played, wins, draws, losses,
            goals_for, goals_against, goal_difference, points)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           competitionId,
           groupId,
           teamId,
+          next_position,
           stats.matches_played,
           stats.wins,
           stats.draws,
@@ -249,12 +257,12 @@ async function initializeGroupStandings(competitionId, groupId) {
   try {
     // Récupérer toutes les équipes du groupe
     const [teams] = await db.query(
-      `SELECT team_id FROM teams WHERE group_id = ? AND competition_id = ?`,
+      `SELECT team_id FROM teams WHERE group_id = ? AND competition_id = ? ORDER BY team_id ASC`,
       [groupId, competitionId]
     );
 
-    // Créer une entrée pour chaque équipe avec 0 everywhere
-    for (const { team_id } of teams) {
+    // Créer une entrée pour chaque équipe avec une position initiale stable
+    for (const [index, { team_id }] of teams.entries()) {
       const [existing] = await db.query(
         `SELECT standing_id FROM standings 
          WHERE group_id = ? AND team_id = ?`,
@@ -267,7 +275,7 @@ async function initializeGroupStandings(competitionId, groupId) {
             (competition_id, group_id, team_id, position, matches_played, wins, draws, 
              losses, goals_for, goals_against, goal_difference, points)
           VALUES (?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0)`,
-          [competitionId, groupId, team_id, teams.indexOf({ team_id }) + 1]
+          [competitionId, groupId, team_id, index + 1]
         );
       }
     }

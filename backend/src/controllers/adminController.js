@@ -4,6 +4,45 @@ const knockoutService = require('../services/knockoutService');
 
 const ROLE_LEVEL = { user: 0, moderator: 1, admin: 2, super_admin: 3 };
 
+const parseScore = (value) => {
+    const score = Number(value);
+    return Number.isInteger(score) && score >= 0 ? score : null;
+};
+
+const parseWinnerTeamId = (value) => {
+    if (value === undefined || value === null || value === '') return null;
+    const winnerTeamId = Number(value);
+    return Number.isInteger(winnerTeamId) ? winnerTeamId : NaN;
+};
+
+const resolveKnockoutWinner = (match, homeScore, awayScore, winnerTeamId) => {
+    const validTeamIds = [match.home_team_id, match.away_team_id];
+
+    if (winnerTeamId !== null && !validTeamIds.includes(winnerTeamId)) {
+        return { error: 'Le vainqueur doit être une des deux équipes du match' };
+    }
+
+    if (homeScore > awayScore) {
+        if (winnerTeamId !== null && winnerTeamId !== match.home_team_id) {
+            return { error: 'Le vainqueur ne correspond pas au score saisi' };
+        }
+        return { winnerId: match.home_team_id };
+    }
+
+    if (awayScore > homeScore) {
+        if (winnerTeamId !== null && winnerTeamId !== match.away_team_id) {
+            return { error: 'Le vainqueur ne correspond pas au score saisi' };
+        }
+        return { winnerId: match.away_team_id };
+    }
+
+    if (winnerTeamId === null) {
+        return { error: 'Un vainqueur est obligatoire pour un match de phase finale terminé à égalité' };
+    }
+
+    return { winnerId: winnerTeamId };
+};
+
 // GET /api/admin/users — lister les utilisateurs avec pagination et recherche
 const getAllUsers = async (req, res) => {
     const page  = Math.max(1, parseInt(req.query.page)  || 1);
@@ -136,20 +175,27 @@ const updateUserInfo = async (req, res) => {
 // PUT /api/admin/matches/:id/score — saisie manuelle du score d'un match
 const updateMatchScore = async (req, res) => {
     const { id } = req.params;
-    const { home_score, away_score, status } = req.body;
+    const { home_score, away_score, status, winner_team_id } = req.body;
 
     if (home_score === undefined || away_score === undefined) {
         return res.status(400).json({ message: 'Les scores domicile et extérieur sont obligatoires' });
     }
 
+    const homeScore = parseScore(home_score);
+    const awayScore = parseScore(away_score);
+
+    if (homeScore === null || awayScore === null) {
+        return res.status(400).json({ message: 'Les scores doivent être des entiers positifs' });
+    }
+
+    const winnerTeamId = parseWinnerTeamId(winner_team_id);
+    if (Number.isNaN(winnerTeamId)) {
+        return res.status(400).json({ message: 'Le vainqueur doit être un identifiant d\'équipe valide' });
+    }
+
     const newStatus = status || 'finished';
 
     try {
-        await db.query(
-            'UPDATE matches SET home_score = ?, away_score = ?, status = ? WHERE match_id = ?',
-            [home_score, away_score, newStatus, id]
-        );
-
         const [matches] = await db.query(
             'SELECT match_id, competition_id, group_id, stage, home_team_id, away_team_id FROM matches WHERE match_id = ?',
             [id]
@@ -160,6 +206,20 @@ const updateMatchScore = async (req, res) => {
         }
 
         const match = matches[0];
+        let knockoutWinnerId = null;
+
+        if (newStatus === 'finished' && match.stage !== 'group') {
+            const result = resolveKnockoutWinner(match, homeScore, awayScore, winnerTeamId);
+            if (result.error) {
+                return res.status(400).json({ message: result.error });
+            }
+            knockoutWinnerId = result.winnerId;
+        }
+
+        await db.query(
+            'UPDATE matches SET home_score = ?, away_score = ?, status = ? WHERE match_id = ?',
+            [homeScore, awayScore, newStatus, id]
+        );
 
         if (newStatus === 'finished') {
             if (match.stage === 'group' && match.group_id) {
@@ -167,10 +227,7 @@ const updateMatchScore = async (req, res) => {
             }
 
             if (match.stage !== 'group') {
-                const winnerId = home_score > away_score ? match.home_team_id : away_score > home_score ? match.away_team_id : null;
-                if (winnerId) {
-                    await knockoutService.updateBracketAfterMatch(id, winnerId);
-                }
+                await knockoutService.updateBracketAfterMatch(id, knockoutWinnerId);
             }
         }
 

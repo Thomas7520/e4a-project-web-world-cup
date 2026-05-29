@@ -32,34 +32,25 @@ async function initializeKnockoutBracket(competitionId) {
       throw new Error('Aucun groupe trouvé pour cette compétition');
     }
 
-    const [qualifiers] = await db.query(
-      `SELECT s.team_id, s.position, g.name as group_name
+    const [standings] = await db.query(
+      `SELECT
+        s.team_id, s.position, s.points, s.goal_difference, s.goals_for,
+        g.name as group_name
        FROM standings s
        JOIN groups_pool g ON s.group_id = g.group_id
-       WHERE g.competition_id = ? AND s.position IN (1, 2)
+       WHERE g.competition_id = ? AND s.position IN (1, 2, 3)
        ORDER BY g.name ASC, s.position ASC`,
       [competitionId]
     );
 
+    const qualifiers = getKnockoutQualifiers(groups, standings);
     const totalQualifiers = qualifiers.length;
-    if (totalQualifiers < 8 || totalQualifiers > 32 || (totalQualifiers & (totalQualifiers - 1)) !== 0) {
-      throw new Error('Impossible de générer le bracket : le nombre de qualifiés doit être une puissance de 2 comprise entre 8 et 32');
-    }
-
-    const winners = qualifiers.filter((q) => q.position === 1);
-    const runners = qualifiers.filter((q) => q.position === 2);
-
-    if (winners.length !== runners.length) {
-      throw new Error('Données de qualification invalides : le nombre de premiers et de deuxièmes doit être identique');
-    }
-
     const stages = getStageNames(totalQualifiers);
     const firstStage = stages[0];
-    const firstStageMatchCount = totalQualifiers / 2;
+    const firstRoundPairs = buildFirstRoundPairs(qualifiers);
 
-    for (let i = 0; i < firstStageMatchCount; i++) {
-      const home = winners[i];
-      const away = runners[firstStageMatchCount - 1 - i];
+    for (let i = 0; i < firstRoundPairs.length; i++) {
+      const [home, away] = firstRoundPairs[i];
 
       await db.query(
         `INSERT INTO knockout_matches 
@@ -101,6 +92,109 @@ async function initializeKnockoutBracket(competitionId) {
   } catch (error) {
     console.error('Erreur lors de l\'initialisation du bracket:', error);
     throw error;
+  }
+}
+
+function getKnockoutQualifiers(groups, standings) {
+  const groupNames = groups.map((group) => group.name);
+  const targetQualifierCount = getTargetQualifierCount(groupNames.length * 2);
+  const winners = [];
+  const runners = [];
+  const thirds = [];
+
+  for (const groupName of groupNames) {
+    const groupStandings = standings.filter((standing) => standing.group_name === groupName);
+    const winner = groupStandings.find((standing) => standing.position === 1);
+    const runner = groupStandings.find((standing) => standing.position === 2);
+    const third = groupStandings.find((standing) => standing.position === 3);
+
+    if (!winner || !runner) {
+      throw new Error(`Impossible de générer le bracket : le groupe ${groupName} n'a pas deux qualifiés`);
+    }
+
+    winners.push(winner);
+    runners.push(runner);
+
+    if (third) {
+      thirds.push(third);
+    }
+  }
+
+  const automaticQualifiers = [...winners, ...runners];
+  const thirdPlaceNeeded = targetQualifierCount - automaticQualifiers.length;
+
+  if (thirdPlaceNeeded < 0) {
+    throw new Error('Impossible de générer le bracket : trop de qualifiés automatiques');
+  }
+
+  if (thirdPlaceNeeded > thirds.length) {
+    throw new Error('Impossible de générer le bracket : pas assez de troisièmes pour compléter le tableau');
+  }
+
+  const bestThirds = thirds
+    .sort(compareQualifiedTeams)
+    .slice(0, thirdPlaceNeeded)
+    .map((third) => ({ ...third, qualified_as: 'best_third' }));
+
+  return [
+    ...winners.map((winner) => ({ ...winner, qualified_as: 'winner' })),
+    ...runners.map((runner) => ({ ...runner, qualified_as: 'runner' })),
+    ...bestThirds,
+  ];
+}
+
+function compareQualifiedTeams(a, b) {
+  if (b.points !== a.points) return b.points - a.points;
+  if (b.goal_difference !== a.goal_difference) return b.goal_difference - a.goal_difference;
+  if (b.goals_for !== a.goals_for) return b.goals_for - a.goals_for;
+  return String(a.group_name).localeCompare(String(b.group_name));
+}
+
+function getTargetQualifierCount(automaticQualifierCount) {
+  if (automaticQualifierCount > 32) {
+    throw new Error('Impossible de générer le bracket : plus de 32 qualifiés automatiques');
+  }
+
+  let target = 8;
+  while (target < automaticQualifierCount) {
+    target *= 2;
+  }
+
+  return target;
+}
+
+function buildFirstRoundPairs(qualifiers) {
+  const winners = qualifiers.filter((q) => q.qualified_as === 'winner');
+  const runners = qualifiers.filter((q) => q.qualified_as === 'runner');
+  const bestThirds = qualifiers.filter((q) => q.qualified_as === 'best_third');
+  const matchCount = qualifiers.length / 2;
+  const homeSeeds = [...winners, ...bestThirds.slice(0, matchCount - winners.length)];
+  const awaySeeds = [...runners, ...bestThirds.slice(matchCount - winners.length)].reverse();
+
+  if (homeSeeds.length !== matchCount || awaySeeds.length !== matchCount) {
+    throw new Error('Impossible de générer le bracket : répartition des têtes de série invalide');
+  }
+
+  avoidSameGroupFirstRound(homeSeeds, awaySeeds);
+
+  return homeSeeds.map((home, index) => [home, awaySeeds[index]]);
+}
+
+function avoidSameGroupFirstRound(homeSeeds, awaySeeds) {
+  for (let i = 0; i < homeSeeds.length; i++) {
+    if (homeSeeds[i].group_name !== awaySeeds[i].group_name) continue;
+
+    const swapIndex = awaySeeds.findIndex((away, index) => (
+      index !== i
+      && away.group_name !== homeSeeds[i].group_name
+      && awaySeeds[i].group_name !== homeSeeds[index].group_name
+    ));
+
+    if (swapIndex === -1) {
+      throw new Error('Impossible de générer le bracket : conflit de groupe au premier tour');
+    }
+
+    [awaySeeds[i], awaySeeds[swapIndex]] = [awaySeeds[swapIndex], awaySeeds[i]];
   }
 }
 
@@ -156,7 +250,7 @@ async function updateBracketAfterMatch(matchId, winnerId) {
 
       if (matchRows.length > 0) {
         const currentMatch = matchRows[0];
-        const loserId = currentMatch.home_score > currentMatch.away_score
+        const loserId = currentMatch.home_team_id === winnerId
           ? currentMatch.away_team_id
           : currentMatch.home_team_id;
 

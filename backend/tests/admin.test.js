@@ -10,6 +10,8 @@ jest.mock('../src/services/knockoutService', () => ({ updateBracketAfterMatch: j
 
 const db = require('../src/config/db');
 const app = require('../server');
+const standingsService = require('../src/services/standingsService');
+const knockoutService = require('../src/services/knockoutService');
 
 const makeToken = (payload) => jwt.sign(payload, 'test-secret', { expiresIn: '1h' });
 
@@ -257,14 +259,97 @@ describe('PUT /api/admin/matches/:id/score', () => {
     it('un admin peut saisir le score d\'un match', async () => {
         authOk();
         db.query
-            .mockResolvedValueOnce([{}])
-            .mockResolvedValueOnce([[{ match_id: 1, competition_id: 1, group_id: 1, stage: 'group', home_team_id: 1, away_team_id: 2 }]]);
+            .mockResolvedValueOnce([[{ match_id: 1, competition_id: 1, group_id: 1, stage: 'group', home_team_id: 1, away_team_id: 2 }]])
+            .mockResolvedValueOnce([{}]);
 
         const res = await request(app).put('/api/admin/matches/1/score')
             .set('Authorization', `Bearer ${tokens.admin}`)
             .send({ home_score: 2, away_score: 1 });
 
         expect(res.status).toBe(200);
+        expect(standingsService.recalculateGroupStandings).toHaveBeenCalledWith(1, 1);
+    });
+
+    it('demande un vainqueur explicite pour un match de phase finale terminé à égalité', async () => {
+        authOk();
+        db.query.mockResolvedValueOnce([[{
+            match_id: 1,
+            competition_id: 1,
+            group_id: null,
+            stage: 'round_of_16',
+            home_team_id: 1,
+            away_team_id: 2,
+        }]]);
+
+        const res = await request(app).put('/api/admin/matches/1/score')
+            .set('Authorization', `Bearer ${tokens.admin}`)
+            .send({ home_score: 1, away_score: 1 });
+
+        expect(res.status).toBe(400);
+        expect(res.body.message).toContain('vainqueur');
+        expect(knockoutService.updateBracketAfterMatch).not.toHaveBeenCalled();
+        expect(db.query.mock.calls.some(([sql]) => sql.includes('UPDATE matches SET'))).toBe(false);
+    });
+
+    it('fait avancer le vainqueur explicite d\'un match de phase finale à égalité', async () => {
+        authOk();
+        db.query
+            .mockResolvedValueOnce([[{
+                match_id: 1,
+                competition_id: 1,
+                group_id: null,
+                stage: 'round_of_16',
+                home_team_id: 1,
+                away_team_id: 2,
+            }]])
+            .mockResolvedValueOnce([{}]);
+
+        const res = await request(app).put('/api/admin/matches/1/score')
+            .set('Authorization', `Bearer ${tokens.admin}`)
+            .send({ home_score: 1, away_score: 1, winner_team_id: 2 });
+
+        expect(res.status).toBe(200);
+        expect(knockoutService.updateBracketAfterMatch).toHaveBeenCalledWith('1', 2);
+    });
+
+    it('refuse un vainqueur qui ne fait pas partie du match', async () => {
+        authOk();
+        db.query.mockResolvedValueOnce([[{
+            match_id: 1,
+            competition_id: 1,
+            group_id: null,
+            stage: 'quarter_final',
+            home_team_id: 1,
+            away_team_id: 2,
+        }]]);
+
+        const res = await request(app).put('/api/admin/matches/1/score')
+            .set('Authorization', `Bearer ${tokens.admin}`)
+            .send({ home_score: 1, away_score: 1, winner_team_id: 99 });
+
+        expect(res.status).toBe(400);
+        expect(res.body.message).toContain('deux équipes');
+        expect(knockoutService.updateBracketAfterMatch).not.toHaveBeenCalled();
+    });
+
+    it('refuse un vainqueur contradictoire avec le score hors égalité', async () => {
+        authOk();
+        db.query.mockResolvedValueOnce([[{
+            match_id: 1,
+            competition_id: 1,
+            group_id: null,
+            stage: 'semi_final',
+            home_team_id: 1,
+            away_team_id: 2,
+        }]]);
+
+        const res = await request(app).put('/api/admin/matches/1/score')
+            .set('Authorization', `Bearer ${tokens.admin}`)
+            .send({ home_score: 2, away_score: 1, winner_team_id: 2 });
+
+        expect(res.status).toBe(400);
+        expect(res.body.message).toContain('score');
+        expect(knockoutService.updateBracketAfterMatch).not.toHaveBeenCalled();
     });
 
     it('refuse si les scores sont absents (400)', async () => {
