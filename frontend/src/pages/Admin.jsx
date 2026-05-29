@@ -121,6 +121,8 @@ export default function Admin() {
     const [matchPage, setMatchPage]           = useState(1);
     const [matchSearch, setMatchSearch]       = useState('');
     const [matchStatusFilter, setMatchStatusFilter] = useState('');
+    const [newPwd, setNewPwd]                 = useState('');
+    const [confirmPwd, setConfirmPwd]         = useState('');
     const [editMatch, setEditMatch]           = useState(null);
     const [stadiums, setStadiums]             = useState([]);
     const [editKickoffAt, setEditKickoffAt]   = useState('');
@@ -228,12 +230,23 @@ export default function Admin() {
         setEditUser(u);
         setEditUsername(u.username);
         setEditEmail(u.email);
+        setNewPwd('');
+        setConfirmPwd('');
     };
 
     const handleEditSubmit = async (e) => {
         e.preventDefault();
+        if (newPwd && newPwd !== confirmPwd) {
+            addToast('Les mots de passe ne correspondent pas', 'error');
+            return;
+        }
         try {
-            await api.put(`/admin/users/${editUser.user_id}`, { username: editUsername, email: editEmail });
+            if (canEdit(editUser)) {
+                await api.put(`/admin/users/${editUser.user_id}`, { username: editUsername, email: editEmail });
+            }
+            if (newPwd && canResetPassword(editUser)) {
+                await api.put(`/admin/users/${editUser.user_id}/password`, { password: newPwd });
+            }
             addToast('Utilisateur mis à jour');
             setEditUser(null);
             fetchUsers();
@@ -294,7 +307,8 @@ export default function Admin() {
     };
 
     // --- Permissions ---
-    const canToggleActive = (u) => u.user_id !== me.user_id && ROLE_LEVEL[me.role] > ROLE_LEVEL[u.role];
+    const canToggleActive   = (u) => u.user_id !== me.user_id && ROLE_LEVEL[me.role] > ROLE_LEVEL[u.role];
+    const canResetPassword  = (u) => u.user_id !== me.user_id && ROLE_LEVEL[me.role] > ROLE_LEVEL[u.role];
     const canChangeRole   = (u) => u.user_id !== me.user_id && ['admin', 'super_admin'].includes(me.role) && ROLE_LEVEL[me.role] > ROLE_LEVEL[u.role];
     const availableRoles  = (u) => Object.keys(ROLE_LEVEL).filter(r => r !== 'super_admin' && ROLE_LEVEL[r] < ROLE_LEVEL[me.role] && r !== u.role);
     const canEdit         = (u) => u.user_id !== me.user_id && ['admin', 'super_admin'].includes(me.role);
@@ -372,7 +386,7 @@ export default function Admin() {
                                                     menuPosition="fixed"
                                                 />
                                             )}
-                                            {canEdit(u) && (
+                                            {(canEdit(u) || canResetPassword(u)) && (
                                                 <button onClick={() => openEdit(u)} className="btn btn-outline btn-sm">
                                                     Modifier
                                                 </button>
@@ -484,14 +498,42 @@ export default function Admin() {
                     <div className="modal-card" onClick={(e) => e.stopPropagation()}>
                         <form onSubmit={handleEditSubmit} className="modal-form">
                             <h2>Modifier {editUser.username}</h2>
-                            <div className="form-group">
-                                <label>Nom d'utilisateur</label>
-                                <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} required minLength={3} />
-                            </div>
-                            <div className="form-group">
-                                <label>Email</label>
-                                <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required />
-                            </div>
+                            {canEdit(editUser) && (
+                                <>
+                                    <div className="form-group">
+                                        <label>Nom d'utilisateur</label>
+                                        <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} required minLength={3} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Email</label>
+                                        <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required />
+                                    </div>
+                                </>
+                            )}
+                            {canResetPassword(editUser) && (
+                                <>
+                                    <div className="form-group">
+                                        <label>Nouveau mot de passe</label>
+                                        <input
+                                            type="password"
+                                            value={newPwd}
+                                            onChange={(e) => setNewPwd(e.target.value)}
+                                            minLength={8}
+                                            autoComplete="new-password"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Confirmer le mot de passe</label>
+                                        <input
+                                            type="password"
+                                            value={confirmPwd}
+                                            onChange={(e) => setConfirmPwd(e.target.value)}
+                                            minLength={8}
+                                            autoComplete="new-password"
+                                        />
+                                    </div>
+                                </>
+                            )}
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Enregistrer</button>
                                 <button type="button" className="btn btn-outline" onClick={() => setEditUser(null)}>Annuler</button>

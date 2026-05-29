@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAllUsers, toggleUserActive, toggleUserRole, updateUserInfo, getAllMatches, updateMatch, updateMatchScore, deleteUser } = require('../controllers/adminController');
+const { getAllUsers, toggleUserActive, toggleUserRole, updateUserInfo, resetUserPassword, getAllMatches, updateMatch, updateMatchScore, deleteUser } = require('../controllers/adminController');
 const requireAuth = require('../middlewares/requireAuth');
 const requireAdmin = require('../middlewares/requireAdmin');
 const requireStaff = require('../middlewares/requireStaff');
@@ -13,6 +13,9 @@ router.get('/users', requireStaff, getAllUsers);
 
 // PUT  /api/admin/users/:id/disable — staff (modérateur+)
 router.put('/users/:id/disable', requireStaff, toggleUserActive);
+
+// PUT  /api/admin/users/:id/password — staff (modérateur+)
+router.put('/users/:id/password', requireStaff, resetUserPassword);
 
 // PUT  /api/admin/users/:id/promote — admin+
 router.put('/users/:id/promote', requireAdmin, toggleUserRole);

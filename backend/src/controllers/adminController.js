@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const bcrypt = require('bcrypt');
 const standingsService = require('../services/standingsService');
 const knockoutService = require('../services/knockoutService');
 
@@ -239,6 +240,36 @@ const updateMatchScore = async (req, res) => {
     }
 };
 
+// PUT /api/admin/users/:id/password — forcer un nouveau mot de passe (staff+)
+const resetUserPassword = async (req, res) => {
+    const { id } = req.params;
+    const { password } = req.body;
+    const actor = req.user;
+
+    if (!password || password.length < 8) {
+        return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 8 caractères' });
+    }
+
+    try {
+        const [users] = await db.query('SELECT user_id, role FROM users WHERE user_id = ?', [id]);
+
+        if (users.length === 0) return res.status(404).json({ message: 'Utilisateur introuvable' });
+
+        const target = users[0];
+        if (ROLE_LEVEL[actor.role] <= ROLE_LEVEL[target.role]) {
+            return res.status(403).json({ message: 'Vous ne pouvez pas modifier un compte de rang égal ou supérieur' });
+        }
+
+        const hash = await bcrypt.hash(password, 10);
+        await db.query('UPDATE users SET password_hash = ? WHERE user_id = ?', [hash, id]);
+
+        res.json({ message: 'Mot de passe mis à jour' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
 // GET /api/admin/matches — lister les matchs avec pagination et filtres
 const getAllMatches = async (req, res) => {
     const page   = Math.max(1, parseInt(req.query.page)  || 1);
@@ -400,4 +431,4 @@ const deleteUser = async (req, res) => {
     }
 };
 
-module.exports = { getAllUsers, toggleUserActive, toggleUserRole, updateUserInfo, getAllMatches, updateMatch, updateMatchScore, deleteUser };
+module.exports = { getAllUsers, toggleUserActive, toggleUserRole, updateUserInfo, resetUserPassword, getAllMatches, updateMatch, updateMatchScore, deleteUser };
