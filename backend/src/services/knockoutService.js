@@ -327,9 +327,10 @@ async function getKnockoutBracket(competitionId) {
         `SELECT 
           ko.knockout_id, ko.position, ko.home_team_id, ko.away_team_id, 
           ko.match_id, ko.winner_team_id,
-          home.name as home_team_name, away.name as away_team_name,
-          winner.name as winner_team_name,
-          m.home_score, m.away_score, m.status
+          home.name as home_team_name, home.flag_url as home_flag,
+          away.name as away_team_name, away.flag_url as away_flag,
+          winner.name as winner_team_name, winner.flag_url as winner_flag,
+          m.home_score, m.away_score, m.status, m.kickoff_at
         FROM knockout_matches ko
         LEFT JOIN teams home ON ko.home_team_id = home.team_id
         LEFT JOIN teams away ON ko.away_team_id = away.team_id

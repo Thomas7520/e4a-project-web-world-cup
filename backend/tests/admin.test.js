@@ -362,6 +362,33 @@ describe('PUT /api/admin/matches/:id/score', () => {
         expect(res.status).toBe(400);
     });
 
+    it('refuse les scores invalides sans requête de mise à jour', async () => {
+        authOk();
+
+        const res = await request(app).put('/api/admin/matches/1/score')
+            .set('Authorization', `Bearer ${tokens.admin}`)
+            .send({ home_score: -1, away_score: 1 });
+
+        expect(res.status).toBe(400);
+        expect(res.body.message).toContain('entiers positifs');
+        expect(db.query.mock.calls.some(([sql]) => sql.includes('UPDATE matches SET'))).toBe(false);
+    });
+
+    it('renvoie 404 si le match à scorer est introuvable', async () => {
+        authOk();
+        db.query.mockResolvedValueOnce([[]]);
+
+        const res = await request(app).put('/api/admin/matches/999/score')
+            .set('Authorization', `Bearer ${tokens.admin}`)
+            .send({ home_score: 2, away_score: 1 });
+
+        expect(res.status).toBe(404);
+        expect(res.body.message).toContain('Match introuvable');
+        expect(db.query.mock.calls.some(([sql]) => sql.includes('UPDATE matches SET'))).toBe(false);
+        expect(standingsService.recalculateGroupStandings).not.toHaveBeenCalled();
+        expect(knockoutService.updateBracketAfterMatch).not.toHaveBeenCalled();
+    });
+
     it('un modérateur ne peut pas modifier les scores (403)', async () => {
         authOk();
 

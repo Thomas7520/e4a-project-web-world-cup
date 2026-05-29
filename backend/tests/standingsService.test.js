@@ -7,6 +7,39 @@ const standingsService = require('../src/services/standingsService');
 
 beforeEach(() => jest.clearAllMocks());
 
+describe('standingsService.recalculateGroupStandings', () => {
+    it('recalculates every team in the group before updating positions', async () => {
+        db.query
+            .mockResolvedValueOnce([[{ team_id: 10 }, { team_id: 20 }]])
+            .mockResolvedValueOnce([[{ match_id: 1, home_team_id: 10, away_team_id: 20, home_score: 2, away_score: 1 }]])
+            .mockResolvedValueOnce([[{ standing_id: 1 }]])
+            .mockResolvedValueOnce([{}])
+            .mockResolvedValueOnce([[{ match_id: 1, home_team_id: 10, away_team_id: 20, home_score: 2, away_score: 1 }]])
+            .mockResolvedValueOnce([[{ standing_id: 2 }]])
+            .mockResolvedValueOnce([{}])
+            .mockResolvedValueOnce([[{ standing_id: 1 }, { standing_id: 2 }]])
+            .mockResolvedValueOnce([{}])
+            .mockResolvedValueOnce([{}]);
+
+        await standingsService.recalculateGroupStandings(2, 7);
+
+        expect(db.query.mock.calls[0][0]).toContain('ORDER BY team_id ASC');
+        expect(db.query.mock.calls[0][1]).toEqual([7, 2]);
+
+        const teamStatsQueries = db.query.mock.calls.filter(([sql]) => sql.includes('FROM matches m'));
+        expect(teamStatsQueries.map(([, params]) => params)).toEqual([
+            [2, 7, 10, 10],
+            [2, 7, 20, 20],
+        ]);
+
+        const positionUpdates = db.query.mock.calls.filter(([sql]) => sql.includes('UPDATE standings SET position'));
+        expect(positionUpdates.map(([, params]) => params)).toEqual([
+            [1, 1],
+            [2, 2],
+        ]);
+    });
+});
+
 describe('standingsService.initializeGroupStandings', () => {
     it('creates missing standings with one-based positions in team order', async () => {
         db.query
