@@ -207,13 +207,12 @@ async function seed() {
     try {
         await connection.beginTransaction();
 
+        // Remove any existing World Cup competitions so the app keeps a single dataset
+        await connection.query('DELETE FROM competitions');
+
         await connection.query(
             `INSERT INTO competitions (name, year, host_countries, start_date, end_date)
-             VALUES (?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE
-                host_countries = VALUES(host_countries),
-                start_date = VALUES(start_date),
-                end_date = VALUES(end_date)`,
+             VALUES (?, ?, ?, ?, ?)`,
             [competition.name, competition.year, competition.hostCountries, competition.startDate, competition.endDate]
         );
 

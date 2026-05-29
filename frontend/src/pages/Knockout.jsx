@@ -14,31 +14,29 @@ const stageLabels = {
 
 export default function Knockout() {
     const { addToast } = useToast();
-    const [competitions, setCompetitions] = useState([]);
-    const [selectedCompetition, setSelectedCompetition] = useState(null);
     const [competition, setCompetition] = useState(null);
+    const [selectedCompetition, setSelectedCompetition] = useState(null);
     const [bracket, setBracket] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchCompetitions = async () => {
+        const fetchCompetition = async () => {
             try {
                 const res = await api.get('/competitions');
                 const list = res.data.competitions || [];
-                setCompetitions(list);
                 if (list.length > 0) {
-                    setSelectedCompetition(list[0].competition_id);
                     setCompetition(list[0]);
+                    setSelectedCompetition(list[0].competition_id);
                 }
             } catch (error) {
                 console.error(error);
-                addToast('Impossible de charger les compétitions', 'error');
+                addToast('Impossible de charger la compétition', 'error');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchCompetitions();
+        fetchCompetition();
     }, [addToast]);
 
     useEffect(() => {
@@ -62,9 +60,6 @@ export default function Knockout() {
         fetchBracket();
     }, [selectedCompetition, addToast]);
 
-    const handleCompetitionChange = (event) => {
-        setSelectedCompetition(Number(event.target.value));
-    };
 
     const displayStage = (stage) => {
         const matches = bracket?.[stage] || [];
@@ -100,18 +95,8 @@ export default function Knockout() {
                         <h1>Phases finales</h1>
                         <p>Visualisez le bracket de la compétition et suivez les équipes qualifiées.</p>
                     </div>
-                    <span className="wc-count" translate="no">{competitions.length} compétitions</span>
                 </div>
 
-                <div className="wc-toolbar">
-                    <select value={selectedCompetition || ''} onChange={handleCompetitionChange} className="wc-select">
-                        {competitions.map((comp) => (
-                            <option key={comp.competition_id} value={comp.competition_id}>
-                                {comp.name} {comp.year}
-                            </option>
-                        ))}
-                    </select>
-                </div>
 
                 {loading ? (
                     <div className="wc-loading">Chargement du bracket...</div>

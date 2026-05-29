@@ -6,7 +6,6 @@ import './WorldCupPages.css';
 export default function Statistics() {
     const { addToast } = useToast();
     const [competition, setCompetition] = useState(null);
-    const [competitions, setCompetitions] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedCompetition, setSelectedCompetition] = useState(null);
@@ -21,12 +20,11 @@ export default function Statistics() {
                     throw new Error('Aucune compétition trouvée');
                 }
 
-                setCompetitions(competitionList);
                 setSelectedCompetition(competitionList[0].competition_id);
                 setCompetition(competitionList[0]);
             } catch (error) {
                 console.error(error);
-                addToast('Impossible de charger les compétitions', 'error');
+                addToast('Impossible de charger la compétition', 'error');
             } finally {
                 setLoading(false);
             }
@@ -41,9 +39,6 @@ export default function Statistics() {
 
             setLoading(true);
             try {
-                const current = competitions.find((c) => c.competition_id === selectedCompetition);
-                setCompetition(current || null);
-
                 const statsResponse = await api.get(`/stats/competition/${selectedCompetition}`);
                 setStats(statsResponse.data.stats);
             } catch (error) {
@@ -55,11 +50,8 @@ export default function Statistics() {
         };
 
         fetchStats();
-    }, [selectedCompetition, addToast, competitions]);
+    }, [selectedCompetition, addToast]);
 
-    const handleCompetitionChange = (event) => {
-        setSelectedCompetition(Number(event.target.value));
-    };
 
     return (
         <div className="page-content">
@@ -69,18 +61,8 @@ export default function Statistics() {
                         <h1>Statistiques</h1>
                         <p>Découvrez les meilleurs buteurs, passeurs, équipes et cartes de la compétition.</p>
                     </div>
-                    <span className="wc-count" translate="no">{competitions.length} compétitions</span>
                 </div>
 
-                <div className="wc-toolbar">
-                    <select value={selectedCompetition || ''} onChange={handleCompetitionChange} className="wc-select">
-                        {competitions.map((comp) => (
-                            <option key={comp.competition_id} value={comp.competition_id}>
-                                {comp.name} {comp.year}
-                            </option>
-                        ))}
-                    </select>
-                </div>
 
                 {loading ? (
                     <div className="wc-loading">Chargement des statistiques...</div>

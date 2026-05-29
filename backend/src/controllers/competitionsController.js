@@ -19,6 +19,7 @@ const getCompetitions = async (req, res) => {
             LEFT JOIN matches m ON m.competition_id = c.competition_id
             GROUP BY c.competition_id
             ORDER BY c.year DESC
+            LIMIT 1
         `);
 
         res.json({ competitions });
