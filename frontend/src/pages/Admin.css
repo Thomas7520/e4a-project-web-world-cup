@@ -1,3 +1,126 @@
+/* ===== TABS ===== */
+.admin-tabs {
+    display: flex;
+    margin-bottom: 28px;
+    border-bottom: 2px solid var(--border);
+}
+
+.admin-tab {
+    padding: 10px 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-light);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.admin-tab:hover { color: var(--primary); }
+
+.admin-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+}
+
+/* ===== FILTERS ===== */
+.admin-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.admin-search--inline {
+    flex: 1;
+    min-width: 200px;
+    max-width: none;
+    margin-bottom: 0;
+}
+
+.filter-select {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    outline: none;
+    background: white;
+    cursor: pointer;
+    color: var(--text);
+    min-width: 160px;
+    transition: border-color 0.2s;
+}
+
+.filter-select:focus { border-color: var(--primary); }
+
+/* ===== STATUS BADGES ===== */
+.status-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-scheduled { background: #f0f0f0; color: #555; }
+.status-live      { background: #d4edda; color: #155724; }
+.status-finished  { background: #cce5ff; color: #004085; }
+.status-postponed { background: #fff3cd; color: #856404; }
+
+/* ===== MATCH MODAL ===== */
+.modal-card--wide {
+    max-width: 520px;
+    overflow-y: auto;
+}
+
+.modal-match-title {
+    text-align: center;
+    color: var(--text-light);
+    font-size: 0.95rem;
+    margin-top: -6px;
+}
+
+.modal-form select {
+    padding: 9px 12px;
+    font-size: 0.95rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+    background: white;
+    cursor: pointer;
+    color: var(--text);
+}
+
+.modal-form select:focus { border-color: var(--primary); }
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.label-hint {
+    color: var(--text-light);
+    font-size: 0.8rem;
+    font-weight: 400;
+}
+
+.label-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nowrap { white-space: nowrap; }
+
+/* ===== HEADER ===== */
 .admin-header {
     display: flex;
     align-items: center;

@@ -239,6 +239,139 @@ const updateMatchScore = async (req, res) => {
     }
 };
 
+// GET /api/admin/matches — lister les matchs avec pagination et filtres
+const getAllMatches = async (req, res) => {
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
+    const { search, status, stage } = req.query;
+
+    const where = [];
+    const filterParams = [];
+
+    if (search) {
+        where.push('(home.name LIKE ? OR away.name LIKE ? OR home.fifa_code = ? OR away.fifa_code = ?)');
+        filterParams.push(`%${search}%`, `%${search}%`, search.toUpperCase(), search.toUpperCase());
+    }
+    if (status) { where.push('m.status = ?'); filterParams.push(status); }
+    if (stage)  { where.push('m.stage = ?');  filterParams.push(stage); }
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    try {
+        const [[{ total }]] = await db.query(
+            `SELECT COUNT(*) AS total
+             FROM matches m
+             JOIN teams home ON home.team_id = m.home_team_id
+             JOIN teams away ON away.team_id = m.away_team_id
+             ${whereClause}`,
+            filterParams
+        );
+
+        const [matches] = await db.query(
+            `SELECT m.match_id, m.match_number, m.stage, m.status, m.kickoff_at,
+                    m.home_score, m.away_score, m.competition_id, m.group_id,
+                    home.team_id AS home_team_id, home.name AS home_team_name, home.fifa_code AS home_team_code,
+                    away.team_id AS away_team_id, away.name AS away_team_name, away.fifa_code AS away_team_code,
+                    s.stadium_id, s.name AS stadium_name, s.city AS stadium_city,
+                    gp.name AS group_name
+             FROM matches m
+             JOIN teams home ON home.team_id = m.home_team_id
+             JOIN teams away ON away.team_id = m.away_team_id
+             LEFT JOIN stadiums s ON s.stadium_id = m.stadium_id
+             LEFT JOIN groups_pool gp ON gp.group_id = m.group_id
+             ${whereClause}
+             ORDER BY m.kickoff_at, m.match_number
+             LIMIT ? OFFSET ?`,
+            [...filterParams, limit, offset]
+        );
+
+        res.json({ matches, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+// PUT /api/admin/matches/:id — modifier les informations d'un match
+const updateMatch = async (req, res) => {
+    const { id } = req.params;
+    const { kickoff_at, stadium_id, status, home_score, away_score, winner_team_id } = req.body;
+
+    const validStatuses = ['scheduled', 'live', 'finished', 'postponed'];
+    if (status !== undefined && !validStatuses.includes(status)) {
+        return res.status(400).json({ message: 'Statut invalide' });
+    }
+
+    const hasScore = home_score !== undefined && away_score !== undefined;
+    let homeScore, awayScore;
+    if (hasScore) {
+        homeScore = parseScore(home_score);
+        awayScore = parseScore(away_score);
+        if (homeScore === null || awayScore === null) {
+            return res.status(400).json({ message: 'Les scores doivent être des entiers positifs' });
+        }
+    }
+
+    try {
+        const [matches] = await db.query(
+            'SELECT match_id, competition_id, group_id, stage, status AS current_status, home_team_id, away_team_id FROM matches WHERE match_id = ?',
+            [id]
+        );
+
+        if (matches.length === 0) return res.status(404).json({ message: 'Match introuvable' });
+        const match = matches[0];
+
+        const updates = [];
+        const params = [];
+
+        if (kickoff_at !== undefined) { updates.push('kickoff_at = ?'); params.push(kickoff_at); }
+        if (stadium_id !== undefined) { updates.push('stadium_id = ?'); params.push(stadium_id || null); }
+        if (status !== undefined)     { updates.push('status = ?');    params.push(status); }
+        if (hasScore) {
+            updates.push('home_score = ?'); params.push(homeScore);
+            updates.push('away_score = ?'); params.push(awayScore);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ message: 'Aucun champ à mettre à jour' });
+        }
+
+        const finalStatus = status !== undefined ? status : match.current_status;
+        let knockoutWinnerId = null;
+
+        if (hasScore && finalStatus === 'finished' && match.stage !== 'group') {
+            const parsedWinner = parseWinnerTeamId(winner_team_id);
+            if (Number.isNaN(parsedWinner)) {
+                return res.status(400).json({ message: "Le vainqueur doit être un identifiant d'équipe valide" });
+            }
+            const result = resolveKnockoutWinner(match, homeScore, awayScore, parsedWinner);
+            if (result.error) {
+                return res.status(400).json({ message: result.error });
+            }
+            knockoutWinnerId = result.winnerId;
+        }
+
+        params.push(id);
+        await db.query(`UPDATE matches SET ${updates.join(', ')} WHERE match_id = ?`, params);
+
+        if (hasScore && finalStatus === 'finished') {
+            if (match.stage === 'group' && match.group_id) {
+                await standingsService.recalculateGroupStandings(match.competition_id, match.group_id);
+            }
+            if (match.stage !== 'group') {
+                await knockoutService.updateBracketAfterMatch(id, knockoutWinnerId);
+            }
+        }
+
+        res.json({ message: 'Match mis à jour' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
 // DELETE /api/admin/users/:id — supprimer un compte (super_admin uniquement)
 const deleteUser = async (req, res) => {
     const { id } = req.params;
@@ -267,4 +400,4 @@ const deleteUser = async (req, res) => {
     }
 };
 
-module.exports = { getAllUsers, toggleUserActive, toggleUserRole, updateUserInfo, updateMatchScore, deleteUser };
+module.exports = { getAllUsers, toggleUserActive, toggleUserRole, updateUserInfo, getAllMatches, updateMatch, updateMatchScore, deleteUser };
