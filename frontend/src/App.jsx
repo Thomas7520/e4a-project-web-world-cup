@@ -15,6 +15,14 @@ import Matches from './pages/Matches';
 import MatchDetail from './pages/MatchDetail';
 import Stadiums from './pages/Stadiums';
 import api from './services/api';
+import Dashboard from './pages/Dashboard';
+import Leagues from './pages/Leagues';
+import CreateLeague from './pages/CreateLeague';
+import JoinLeague from './pages/JoinLeague';
+import LeagueDetails from './pages/LeagueDetails';
+import PredictMatches from './pages/PredictMatches';
+import MyPredictions from './pages/MyPredictions';
+import News from './pages/News';
 
 function AuthChecker() {
     const { user, logout } = useAuth();
@@ -67,6 +75,7 @@ function App() {
                             </AdminRoute>
                         } />
 
+                        {/* Routes de la Personne 2 */}
                         <Route path="/teams" element={<Teams />} />
                         <Route path="/teams/:id" element={<TeamDetail />} />
                         <Route path="/groups" element={<Groups />} />
@@ -74,7 +83,17 @@ function App() {
                         <Route path="/matches/:id" element={<MatchDetail />} />
                         <Route path="/stadiums" element={<Stadiums />} />
 
-                        <Route path="/" element={<p>Accueil</p>} />
+                        {/* 🟢 TES ROUTES À TOI (Accessibles en tapant l'URL) */}
+                        <Route path="/leagues" element={<Leagues />} />
+                        <Route path="/create-league" element={<CreateLeague />} />
+                        <Route path="/join-league" element={<JoinLeague />} />
+                        <Route path="/league-details" element={<LeagueDetails />} />
+                        <Route path="/predict" element={<PredictMatches />} />
+                        <Route path="/my-predictions" element={<MyPredictions />} />
+                        <Route path="/news" element={<News />} />
+
+                        {/* On remplace l'accueil par ton Dashboard pour le voir direct ! */}
+                        <Route path="/" element={<Dashboard />} /> 
                     </Routes>
                 </BrowserRouter>
             </AuthProvider>
