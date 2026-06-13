@@ -32,32 +32,29 @@ export default function Header() {
     const { addToast } = useToast();
     const navigate = useNavigate();
     const location = useLocation();
+
     const [modalOpen, setModalOpen] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
-    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [userDropOpen, setUserDropOpen] = useState(false);
+    const [compDropOpen, setCompDropOpen] = useState(false);
     const [avatarSrc, setAvatarSrc] = useState(user?.avatar_url || null);
-    const dropdownRef = useRef(null);
+
+    const userDropRef = useRef(null);
+    const compDropRef = useRef(null);
 
     useEffect(() => { setAvatarSrc(user?.avatar_url || null); }, [user?.avatar_url]);
-
-    // Ferme le menu hamburger sur changement de page
-    useEffect(() => { setMenuOpen(false); }, [location.pathname]);
-
-    // Ferme le menu hamburger si la fenêtre est agrandie au-delà du breakpoint
+    useEffect(() => { setMenuOpen(false); setCompDropOpen(false); setUserDropOpen(false); }, [location.pathname]);
     useEffect(() => {
-        const handleResize = () => {
-            if (window.innerWidth > 768) setMenuOpen(false);
-        };
+        const handleResize = () => { if (window.innerWidth > 768) setMenuOpen(false); };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Ferme le dropdown si clic en dehors
+    // Ferme les dropdowns si clic en dehors
     useEffect(() => {
         const handler = (e) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-                setDropdownOpen(false);
-            }
+            if (userDropRef.current && !userDropRef.current.contains(e.target)) setUserDropOpen(false);
+            if (compDropRef.current && !compDropRef.current.contains(e.target)) setCompDropOpen(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
@@ -66,7 +63,7 @@ export default function Header() {
     const handleLogout = async () => {
         await api.post('/auth/logout');
         logout();
-        setDropdownOpen(false);
+        setUserDropOpen(false);
         setMenuOpen(false);
         navigate('/');
         addToast('Vous avez été déconnecté', 'info');
@@ -78,25 +75,42 @@ export default function Header() {
         <>
             <header className="header">
                 <div className="header-left">
-                    <Link to="/" className="header-logo">⚽ Coupe du Monde 2026</Link>
+                    <Link to="/" className="header-logo">⚽ MondialPronos</Link>
+
                     <nav className="header-main-nav">
                         <Link to="/" className="header-link">Accueil</Link>
-                        <Link to="/teams" className="header-link">Equipes</Link>
-                        <Link to="/groups" className="header-link">Groupes</Link>
-                        <Link to="/matches" className="header-link">Matchs</Link>
-                        <Link to="/standings" className="header-link">Classements</Link>
-                        <Link to="/knockout" className="header-link">Phases finales</Link>
-                        <Link to="/statistics" className="header-link">Statistiques</Link>
-                        <Link to="/stadiums" className="header-link">Stades</Link>
+
+                        {/* Dropdown Compétition */}
+                        <div className="nav-dropdown" ref={compDropRef}>
+                            <button
+                                className="header-link nav-dropdown-btn"
+                                onClick={() => setCompDropOpen(o => !o)}
+                            >
+                                Compétition <IconChevron />
+                            </button>
+                            {compDropOpen && (
+                                <div className="nav-dropdown-menu">
+                                    <Link to="/teams"     className="nav-dropdown-item" onClick={() => setCompDropOpen(false)}>Équipes</Link>
+                                    <Link to="/groups"    className="nav-dropdown-item" onClick={() => setCompDropOpen(false)}>Groupes</Link>
+                                    <Link to="/matches"   className="nav-dropdown-item" onClick={() => setCompDropOpen(false)}>Matchs</Link>
+                                    <Link to="/standings" className="nav-dropdown-item" onClick={() => setCompDropOpen(false)}>Classements</Link>
+                                    <Link to="/knockout"  className="nav-dropdown-item" onClick={() => setCompDropOpen(false)}>Phases finales</Link>
+                                    <Link to="/stadiums"  className="nav-dropdown-item" onClick={() => setCompDropOpen(false)}>Stades</Link>
+                                    <Link to="/statistics" className="nav-dropdown-item" onClick={() => setCompDropOpen(false)}>Statistiques</Link>
+                                </div>
+                            )}
+                        </div>
+
+                        <Link to="/news" className="header-link">Actus</Link>
                     </nav>
                 </div>
 
                 <div className="header-right">
                     {user ? (
-                        <div className="header-user" ref={dropdownRef}>
+                        <div className="header-user" ref={userDropRef}>
                             <button
                                 className="header-user-btn"
-                                onClick={() => setDropdownOpen(o => !o)}
+                                onClick={() => setUserDropOpen(o => !o)}
                             >
                                 {avatarSrc
                                     ? <img src={avatarSrc} alt="avatar" className="header-avatar" onError={() => setAvatarSrc(null)} />
@@ -106,15 +120,14 @@ export default function Header() {
                                 <IconChevron />
                             </button>
 
-                            {dropdownOpen && (
+                            {userDropOpen && (
                                 <div className="header-dropdown">
-                                    <Link to="/profile" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
-                                        Mon profil
-                                    </Link>
+                                    <Link to="/profile" className="dropdown-item" onClick={() => setUserDropOpen(false)}>Mon profil</Link>
+                                    <Link to="/leagues" className="dropdown-item" onClick={() => setUserDropOpen(false)}>Mes ligues</Link>
+                                    <Link to="/predict" className="dropdown-item" onClick={() => setUserDropOpen(false)}>Mes pronos</Link>
+                                    <Link to="/my-predictions" className="dropdown-item" onClick={() => setUserDropOpen(false)}>Mon historique</Link>
                                     {isStaff && (
-                                        <Link to="/admin" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
-                                            Administration
-                                        </Link>
+                                        <Link to="/admin" className="dropdown-item" onClick={() => setUserDropOpen(false)}>Administration</Link>
                                     )}
                                     <div className="dropdown-separator" />
                                     <button onClick={handleLogout} className="dropdown-item dropdown-item-danger">
@@ -137,26 +150,32 @@ export default function Header() {
                 {menuOpen && (
                     <nav className="header-mobile-nav">
                         <Link to="/" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Accueil</Link>
-                        <Link to="/teams" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Equipes</Link>
-                        <Link to="/groups" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Groupes</Link>
-                        <Link to="/matches" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Matchs</Link>
-                        <Link to="/standings" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Classements</Link>
-                        <Link to="/knockout" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Phases finales</Link>
-                        <Link to="/statistics" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Statistiques</Link>
-                        <Link to="/stadiums" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Stades</Link>
                         <div className="mobile-nav-separator" />
-                        {user ? (
+                        <Link to="/teams"      className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Équipes</Link>
+                        <Link to="/groups"     className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Groupes</Link>
+                        <Link to="/matches"    className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Matchs</Link>
+                        <Link to="/standings"  className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Classements</Link>
+                        <Link to="/knockout"   className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Phases finales</Link>
+                        <Link to="/stadiums"   className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Stades</Link>
+                        <Link to="/statistics" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Statistiques</Link>
+                        <div className="mobile-nav-separator" />
+                        <Link to="/news" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Actus</Link>
+                        {user && (
                             <>
+                                <div className="mobile-nav-separator" />
                                 <Link to="/profile" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Mon profil</Link>
-                                {isStaff && (
-                                    <Link to="/admin" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Administration</Link>
-                                )}
+                                <Link to="/leagues" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Mes ligues</Link>
+                                <Link to="/predict" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Mes pronos</Link>
+                                <Link to="/my-predictions" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Mon historique</Link>
+                                {isStaff && <Link to="/admin" className="mobile-nav-item" onClick={() => setMenuOpen(false)}>Administration</Link>}
                                 <button onClick={handleLogout} className="mobile-nav-item mobile-nav-danger">Déconnexion</button>
                             </>
-                        ) : (
-                            <button onClick={() => { setModalOpen(true); setMenuOpen(false); }} className="mobile-nav-item">
-                                Connexion
-                            </button>
+                        )}
+                        {!user && (
+                            <>
+                                <div className="mobile-nav-separator" />
+                                <button onClick={() => { setModalOpen(true); setMenuOpen(false); }} className="mobile-nav-item">Connexion</button>
+                            </>
                         )}
                     </nav>
                 )}

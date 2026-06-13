@@ -114,6 +114,12 @@ export default function Admin() {
     const [editUsername, setEditUsername] = useState('');
     const [editEmail, setEditEmail]     = useState('');
 
+    // --- News ---
+    const [news, setNews]               = useState([]);
+    const [editNews, setEditNews]       = useState(null);
+    const [newsForm, setNewsForm]       = useState({ title: '', content: '', image_url: '' });
+    const [newsModalMode, setNewsModalMode] = useState('create'); // 'create' | 'edit'
+
     // --- Matches ---
     const [matches, setMatches]               = useState([]);
     const [matchTotal, setMatchTotal]         = useState(0);
@@ -133,7 +139,7 @@ export default function Admin() {
     const [editWinnerOpt, setEditWinnerOpt]   = useState(null);
 
     useLayoutEffect(() => {
-        if (!editUser && !editMatch) return;
+        if (!editUser && !editMatch && !editNews) return;
         const sw = window.innerWidth - document.documentElement.clientWidth;
         document.body.style.paddingRight = `${sw}px`;
         document.body.style.overflow = 'hidden';
@@ -141,7 +147,67 @@ export default function Admin() {
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
         };
-    }, [editUser, editMatch]);
+    }, [editUser, editMatch, editNews]);
+
+    // --- News data ---
+    const fetchNews = useCallback(async () => {
+        try {
+            const res = await api.get('/news');
+            setNews(res.data);
+        } catch {
+            addToast('Impossible de charger les actualités', 'error');
+        }
+    }, []);
+
+    useEffect(() => {
+        if (activeTab === 'news') fetchNews();
+    }, [activeTab]);
+
+    const openCreateNews = () => {
+        setNewsModalMode('create');
+        setNewsForm({ title: '', content: '', image_url: '' });
+        setEditNews({});
+    };
+
+    const openEditNews = (n) => {
+        setNewsModalMode('edit');
+        setNewsForm({ title: n.title, content: n.content, image_url: n.image_url || '' });
+        setEditNews(n);
+    };
+
+    const handleNewsSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (newsModalMode === 'create') {
+                await api.post('/news', newsForm);
+                addToast('Actualité créée');
+            } else {
+                await api.put(`/news/${editNews.news_id}`, newsForm);
+                addToast('Actualité mise à jour');
+            }
+            setEditNews(null);
+            fetchNews();
+        } catch (err) {
+            addToast(err.response?.data?.error || 'Erreur', 'error');
+        }
+    };
+
+    const handleDeleteNews = async (n) => {
+        const { isConfirmed } = await swalConfirm({
+            title: `Supprimer "${n.title}" ?`,
+            text: 'Cette action est irréversible.',
+            confirmButtonText: 'Supprimer',
+            confirmClass: 'btn-danger',
+        });
+        if (!isConfirmed) return;
+        try {
+            await api.delete(`/news/${n.news_id}`);
+            addToast('Actualité supprimée');
+            fetchNews();
+        } catch (err) {
+            addToast(err.response?.data?.error || 'Erreur', 'error');
+        }
+    };
 
     // --- Users data ---
     const fetchUsers = useCallback(async (p = page, s = search) => {
@@ -329,6 +395,9 @@ export default function Admin() {
                 <button className={`admin-tab${activeTab === 'matches' ? ' active' : ''}`} onClick={() => setActiveTab('matches')}>
                     Matchs
                 </button>
+                <button className={`admin-tab${activeTab === 'news' ? ' active' : ''}`} onClick={() => setActiveTab('news')}>
+                    Actualités
+                </button>
             </div>
 
             {/* ===== ONGLET UTILISATEURS ===== */}
@@ -492,6 +561,47 @@ export default function Admin() {
                 </>
             )}
 
+            {/* ===== ONGLET ACTUALITÉS ===== */}
+            {activeTab === 'news' && (
+                <>
+                    <div className="admin-header">
+                        <h2>Actualités</h2>
+                        <button className="btn btn-primary btn-sm" onClick={openCreateNews}>+ Nouvelle actualité</button>
+                    </div>
+
+                    <div className="table-wrapper">
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Titre</th>
+                                    <th>Auteur</th>
+                                    <th>Publié le</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {news.map((n) => (
+                                    <tr key={n.news_id}>
+                                        <td>{n.news_id}</td>
+                                        <td>{n.title}</td>
+                                        <td>{n.author_name || '—'}</td>
+                                        <td className="nowrap">{formatDate(n.published_at)}</td>
+                                        <td className="admin-actions">
+                                            <button onClick={() => openEditNews(n)} className="btn btn-outline btn-sm">Modifier</button>
+                                            <button onClick={() => handleDeleteNews(n)} className="btn btn-danger btn-sm">Supprimer</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {news.length === 0 && (
+                                    <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-light)' }}>Aucune actualité</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            )}
+
             {/* ===== MODAL MODIFIER UTILISATEUR ===== */}
             {editUser && createPortal(
                 <div className="modal-backdrop modal-backdrop--center" onClick={() => setEditUser(null)}>
@@ -537,6 +647,54 @@ export default function Admin() {
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Enregistrer</button>
                                 <button type="button" className="btn btn-outline" onClick={() => setEditUser(null)}>Annuler</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ===== MODAL ACTUALITÉ ===== */}
+            {editNews && createPortal(
+                <div className="modal-backdrop modal-backdrop--center" onClick={() => setEditNews(null)}>
+                    <div className="modal-card modal-card--wide" onClick={(e) => e.stopPropagation()}>
+                        <form onSubmit={handleNewsSubmit} className="modal-form">
+                            <h2>{newsModalMode === 'create' ? 'Nouvelle actualité' : 'Modifier l\'actualité'}</h2>
+                            <div className="form-group">
+                                <label>Titre</label>
+                                <input
+                                    type="text"
+                                    value={newsForm.title}
+                                    onChange={(e) => setNewsForm(f => ({ ...f, title: e.target.value }))}
+                                    required
+                                    placeholder="Titre de l'actualité"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Contenu</label>
+                                <textarea
+                                    value={newsForm.content}
+                                    onChange={(e) => setNewsForm(f => ({ ...f, content: e.target.value }))}
+                                    required
+                                    rows={5}
+                                    placeholder="Contenu de l'actualité..."
+                                    style={{ resize: 'vertical' }}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>URL de l'image <span className="label-hint">(optionnel)</span></label>
+                                <input
+                                    type="url"
+                                    value={newsForm.image_url}
+                                    onChange={(e) => setNewsForm(f => ({ ...f, image_url: e.target.value }))}
+                                    placeholder="https://..."
+                                />
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                                    {newsModalMode === 'create' ? 'Publier' : 'Enregistrer'}
+                                </button>
+                                <button type="button" className="btn btn-outline" onClick={() => setEditNews(null)}>Annuler</button>
                             </div>
                         </form>
                     </div>

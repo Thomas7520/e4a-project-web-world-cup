@@ -2,6 +2,24 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const standingsService = require('../services/standingsService');
 const knockoutService = require('../services/knockoutService');
+const { calculatePoints } = require('../services/predictionService');
+
+// Recalcule points_earned pour toutes les prédictions d'un match terminé
+const recalculatePredictions = async (matchId, homeScore, awayScore) => {
+    const [preds] = await db.query(
+        'SELECT prediction_id, predicted_home_score, predicted_away_score FROM predictions WHERE match_id = ?',
+        [matchId]
+    );
+    for (const p of preds) {
+        const points = calculatePoints(
+            parseInt(p.predicted_home_score),
+            parseInt(p.predicted_away_score),
+            homeScore,
+            awayScore
+        );
+        await db.query('UPDATE predictions SET points_earned = ? WHERE prediction_id = ?', [points, p.prediction_id]);
+    }
+};
 
 const ROLE_LEVEL = { user: 0, moderator: 1, admin: 2, super_admin: 3 };
 
@@ -387,6 +405,8 @@ const updateMatch = async (req, res) => {
         await db.query(`UPDATE matches SET ${updates.join(', ')} WHERE match_id = ?`, params);
 
         if (hasScore && finalStatus === 'finished') {
+            await recalculatePredictions(id, homeScore, awayScore);
+
             if (match.stage === 'group' && match.group_id) {
                 await standingsService.recalculateGroupStandings(match.competition_id, match.group_id);
             }

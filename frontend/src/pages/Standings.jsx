@@ -84,7 +84,7 @@ export default function Standings() {
                                             </thead>
                                             <tbody>
                                                 {standings[groupName].map((team) => (
-                                                    <tr key={team.standing_id} className={team.position <= 2 ? 'wc-qualified-row' : ''}>
+                                                    <tr key={team.standing_id}>
                                                         <td>{team.position}</td>
                                                         <td>
                                                             <div className="wc-match-team">

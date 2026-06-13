@@ -23,6 +23,10 @@ const stadiumRoutes = require('./src/routes/stadiums');
 const knockoutRoutes = require('./src/routes/knockout');
 const standingsRoutes = require('./src/routes/standings');
 const statsRoutes = require('./src/routes/stats');
+const dashboardRoutes = require('./src/routes/dashboard');
+const leagueRoutes = require('./src/routes/leagues');
+const newsRoutes = require('./src/routes/news');
+const predictionRoutes = require('./src/routes/predictions');
 
 // Déclaration des routes
 app.use('/api/auth', authRoutes);
@@ -37,13 +41,15 @@ app.use('/api/stadiums', stadiumRoutes);
 app.use('/api/standings', standingsRoutes);
 app.use('/api/knockout', knockoutRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api', dashboardRoutes);
+app.use('/api/leagues', leagueRoutes);
+app.use('/api/news', newsRoutes);
+app.use('/api/predictions', predictionRoutes);
 
 // Route de test
 app.get('/', (req, res) => {
     res.json({ message: 'API Coupe du Monde - Serveur en ligne' });
 });
-
-// Démarrage du serveur uniquement si le fichier est exécuté directement
 
 // Intercepte les erreurs Express non gérées
 app.use((err, req, res, next) => {
@@ -51,6 +57,7 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Erreur serveur', debug: err.message });
 });
 
+// Démarrage du serveur uniquement si le fichier est exécuté directement
 if (require.main === module) {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {

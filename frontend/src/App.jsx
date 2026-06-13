@@ -18,6 +18,14 @@ import Standings from './pages/Standings';
 import Knockout from './pages/Knockout';
 import Statistics from './pages/Statistics';
 import api from './services/api';
+import Dashboard from './pages/Dashboard';
+import Leagues from './pages/Leagues';
+import CreateLeague from './pages/CreateLeague';
+import JoinLeague from './pages/JoinLeague';
+import LeagueDetails from './pages/LeagueDetails';
+import PredictMatches from './pages/PredictMatches';
+import MyPredictions from './pages/MyPredictions';
+import News from './pages/News';
 
 function AuthChecker() {
     const { user, logout } = useAuth();
@@ -70,6 +78,7 @@ function App() {
                             </AdminRoute>
                         } />
 
+                        {/* Routes de la Personne 2 */}
                         <Route path="/teams" element={<Teams />} />
                         <Route path="/teams/:id" element={<TeamDetail />} />
                         <Route path="/groups" element={<Groups />} />
@@ -80,7 +89,15 @@ function App() {
                         <Route path="/knockout" element={<Knockout />} />
                         <Route path="/statistics" element={<Statistics />} />
 
-                        <Route path="/" element={<p>Accueil</p>} />
+                        <Route path="/news" element={<News />} />
+
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/leagues" element={<ProtectedRoute><Leagues /></ProtectedRoute>} />
+                        <Route path="/create-league" element={<ProtectedRoute><CreateLeague /></ProtectedRoute>} />
+                        <Route path="/join-league" element={<ProtectedRoute><JoinLeague /></ProtectedRoute>} />
+                        <Route path="/league-details" element={<ProtectedRoute><LeagueDetails /></ProtectedRoute>} />
+                        <Route path="/predict" element={<ProtectedRoute><PredictMatches /></ProtectedRoute>} />
+                        <Route path="/my-predictions" element={<ProtectedRoute><MyPredictions /></ProtectedRoute>} />
                     </Routes>
                 </BrowserRouter>
             </AuthProvider>
