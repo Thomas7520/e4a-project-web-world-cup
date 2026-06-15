@@ -3,12 +3,9 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto'); 
 
-// Connexion à la base de données réelle
 const db = require('../config/db'); 
-// Middleware de sécurité de ton équipe
 const requireAuth = require('../middlewares/requireAuth'); 
 
-// 🛡️ Fonction magique pour récupérer l'ID de manière ultra-sécurisée
 const getUserId = (req) => req.user?.user_id || req.user?.id;
 
 /**
@@ -19,7 +16,6 @@ router.post('/', requireAuth, async (req, res) => {
         const { name } = req.body;
         let owner_id = getUserId(req);
 
-        // Filet de sécurité local : si le token n'est pas fourni ou mal lu, on utilise le compte de Reda
         if (!owner_id) {
             const [u] = await db.query("SELECT user_id FROM users WHERE username = 'Reda' LIMIT 1");
             owner_id = u[0]?.user_id || 1;
@@ -29,17 +25,14 @@ router.post('/', requireAuth, async (req, res) => {
             return res.status(400).json({ error: "Le nom de la ligue est obligatoire." });
         }
 
-        // Génération d'un code unique de 8 caractères
         const invite_code = crypto.randomBytes(4).toString('hex').toUpperCase();
 
-        // Étape A : Insérer la ligue
         const [result] = await db.query(
             'INSERT INTO leagues (name, owner_id, invite_code) VALUES (?, ?, ?)', 
             [name.trim(), owner_id, invite_code]
         );
         const league_id = result.insertId;
 
-        // Étape B : Le créateur devient automatiquement membre
         await db.query(
             'INSERT INTO league_members (league_id, user_id) VALUES (?, ?)', 
             [league_id, owner_id]
@@ -55,7 +48,7 @@ router.post('/', requireAuth, async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Erreur lors de la création de la ligue :", error);
+        console.error("Erreur lors de la création de la ligue :", error);
         res.status(500).json({ error: "Erreur lors de la création de la ligue." });
     }
 });
@@ -77,7 +70,6 @@ router.post('/join', requireAuth, async (req, res) => {
             return res.status(400).json({ error: "Le code d'invitation est obligatoire." });
         }
 
-        // Trouver la ligue
         const [leagues] = await db.query('SELECT league_id, name FROM leagues WHERE invite_code = ?', [invite_code.trim().toUpperCase()]);
 
         if (leagues.length === 0) {
@@ -86,14 +78,12 @@ router.post('/join', requireAuth, async (req, res) => {
 
         const league = leagues[0];
 
-        // Vérifier si déjà membre
         const [members] = await db.query('SELECT * FROM league_members WHERE league_id = ? AND user_id = ?', [league.league_id, user_id]);
 
         if (members.length > 0) {
             return res.status(400).json({ error: "Tu fais déjà partie de cette ligue !" });
         }
 
-        // Ajouter le membre
         await db.query('INSERT INTO league_members (league_id, user_id) VALUES (?, ?)', [league.league_id, user_id]);
 
         res.status(200).json({
@@ -102,7 +92,7 @@ router.post('/join', requireAuth, async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Erreur lors de l'adhésion à la ligue :", error);
+        console.error("Erreur lors de l'adhésion à la ligue :", error);
         res.status(500).json({ error: "Erreur lors de la tentative de rejoindre la ligue." });
     }
 });
@@ -132,7 +122,7 @@ router.get('/me', requireAuth, async (req, res) => {
         res.status(200).json(myLeagues);
 
     } catch (error) {
-        console.error("❌ Erreur lors de la récupération de tes ligues :", error);
+        console.error("Erreur lors de la récupération de tes ligues :", error);
         res.status(500).json({ error: "Erreur lors de la récupération de tes ligues." });
     }
 });
@@ -195,7 +185,7 @@ router.get('/:id', requireAuth, async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Erreur lors de la récupération du classement :", error);
+        console.error("Erreur lors de la récupération du classement :", error);
         res.status(500).json({ error: "Erreur lors de la récupération des détails de la ligue." });
     }
 });

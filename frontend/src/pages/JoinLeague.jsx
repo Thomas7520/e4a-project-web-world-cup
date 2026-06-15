@@ -18,7 +18,6 @@ export default function JoinLeague() {
     setIsSubmitting(true);
 
     try {
-      // 🔥 ÉTAPE 1 : On envoie la demande pour rejoindre (POST /leagues/join)
       const joinResponse = await api.post('/leagues/join', { 
         invite_code: inviteCode.trim().toUpperCase() 
       });
@@ -26,8 +25,6 @@ export default function JoinLeague() {
       const newLeagueId = joinResponse.data?.league_id;
 
       if (newLeagueId) {
-        // 🔥 ÉTAPE 2 : On récupère instantanément les détails de cette ligue (GET /leagues/:id)
-        // pour connaître son vrai nom et l'afficher proprement sur l'écran de succès !
         const detailsResponse = await api.get(`/leagues/${newLeagueId}`);
         
         setJoinedLeague({

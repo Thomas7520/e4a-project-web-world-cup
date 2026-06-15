@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db'); 
 const requireAuth = require('../middlewares/requireAuth'); 
-// 🔌 Importation de ton service de calcul validé par les tests
 const { calculatePoints } = require('../services/predictionService');
 
 const getUserId = (req) => req.user?.user_id || req.user?.id;
@@ -19,7 +18,6 @@ router.post('/', requireAuth, async (req, res) => {
             return res.status(400).json({ error: "Données manquantes." });
         }
 
-        // 🔍 Récupération du score réel du match pour calculer les points si le match est fini
         const [matchRows] = await db.query(
             'SELECT home_score, away_score, status FROM matches WHERE match_id = ?',
             [match_id]
@@ -87,7 +85,6 @@ router.get('/me', requireAuth, async (req, res) => {
         `;
         const [rows] = await db.query(query, [user_id]);
 
-        // 🔄 Application de ton algorithme sur chaque ligne récupérée
         const processedRows = rows.map(row => {
             let points = row.points_earned;
             if (row.actual_home !== null && row.actual_away !== null) {

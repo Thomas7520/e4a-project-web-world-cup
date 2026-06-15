@@ -42,14 +42,14 @@ export default function Dashboard() {
                 predicted_home_score: prono.home,
                 predicted_away_score: prono.away,
             });
-            // Retire le match de la liste des pronos en attente
+
             setData(prev => ({
                 ...prev,
                 pendingMatches: prev.pendingMatches.filter(m => m.match_id !== matchId),
             }));
             setPredictions(prev => { const n = { ...prev }; delete n[matchId]; return n; });
         } catch {
-            // silencieux — l'utilisateur peut réessayer
+            // Rien
         } finally {
             setSubmitting(s => ({ ...s, [matchId]: false }));
         }
