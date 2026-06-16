@@ -16,6 +16,8 @@ export default function Dashboard() {
         if (authLoading) return;
         if (!user) { setLoading(false); return; }
 
+        setLoading(true);
+        setError(null);
         api.get('/dashboard')
             .then(res => setData(res.data))
             .catch(() => setError(true))
